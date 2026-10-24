@@ -3,6 +3,7 @@ local LAYERS_CD = 'cd "Layers"'
 local ASSIGN_PATTERN = "cd (%d+); assign (%d+) /(%a+)=(.*)$"
 local HANDLE_PATTERN = "^(%a+) (%d+)$"
 local ID_PROPERTIES = { Fixture = "FixId", Channel = "ChaId" }
+local PROGRESS_HANDLE = 7
 
 local function object(class, props)
   return { class = class, props = props, children = {} }
@@ -106,8 +107,56 @@ local function new(options)
     end
   end
 
+  fake.messages = {}
+  fake.questions = {}
+  fake.echoes = {}
+  fake.progress = {}
+
+  local function progressEvent(event)
+    fake.progress[#fake.progress + 1] = event
+  end
+
+  local progressWindow = {
+    start = function(title)
+      progressEvent("start " .. title)
+      return PROGRESS_HANDLE
+    end,
+    setrange = function(_, from, to)
+      progressEvent("range " .. from .. " " .. to)
+    end,
+    set = function(_, value)
+      progressEvent("set " .. value)
+    end,
+    settext = function(_, text)
+      progressEvent("text " .. text)
+    end,
+    stop = function()
+      progressEvent("stop")
+    end,
+  }
+
+  local gui = {
+    confirm = function(title, text)
+      fake.questions[#fake.questions + 1] = { title = title, text = text }
+      return options.confirm ~= false
+    end,
+    msgbox = function(title, text)
+      fake.messages[#fake.messages + 1] = { title = title, text = text }
+    end,
+    progress = progressWindow,
+  }
+
   fake.gma = {
     cmd = cmd,
+    echo = function(text)
+      fake.echoes[#fake.echoes + 1] = text
+    end,
+    sleep = function()
+      if options.onSleep then
+        options.onSleep()
+      end
+    end,
+    gui = gui,
     user = {
       getcmddest = function()
         return fake.dest
