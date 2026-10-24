@@ -20,7 +20,7 @@ An imported plugin is an XML file that points to a Lua file. `[V]`
 - `name` is the label in the Plugins pool. A `|` in it becomes a line
   break on the pool button (`name="API|Test"`). `[MA]`
 - `execute_on_load="1"` runs the plugin when the show loads. `[MA]` `[?]`
-- Our bundler (`tools/bundle.lua`) writes this XML for every plugin.
+- Our bundler (`dev/build/bundler.lua`) writes this XML for every plugin.
 
 ## Import and update
 

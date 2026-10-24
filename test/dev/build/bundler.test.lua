@@ -1,6 +1,6 @@
 local lu = require("luaunit")
-local bundle = require("tools.bundle")
-local checkRules = require("tools.check-rules")
+local bundle = require("dev.build.bundler")
+local checkRules = require("dev.lint.code-rules")
 local fakeGma = require("test.support.fake-gma")
 
 local STAMP = { commit = "abc1234", date = "2026-10-24" }

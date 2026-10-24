@@ -32,15 +32,15 @@ All in `C:\lua-executables` (user PATH):
 
 ## Commands
 
-| Command                    | What it does                              |
-| -------------------------- | ----------------------------------------- |
-| `.\check.ps1`              | format check + lint + rules + tests       |
-| `.\install.ps1 -Plugin <name>` | check, bundle to `dist/`, copy to MA  |
-| `.\install.ps1 -Plugin <name> -WhatIf` | same, but copy nothing        |
-| `stylua .`                 | format all files                          |
-| `lua53 test/run.lua <files>` | run some test files                     |
+| Command                                | What it does                        |
+| -------------------------------------- | ----------------------------------- |
+| `.\pre-commit.ps1`                     | format check + lint + rules + tests |
+| `.\install.ps1 -Plugin <name>`         | check, bundle to `dist/`, copy      |
+| `.\install.ps1 -Plugin <name> -WhatIf` | same, but copy nothing              |
+| `stylua .`                             | format all files                    |
+| `lua53 test/run.lua <files>`           | run some test files                 |
 
-`.\check.ps1` must pass before every commit.
+`.\pre-commit.ps1` must pass before every commit.
 
 ## Layout
 
@@ -51,8 +51,12 @@ lib/        shared modules, required as "core.x" or "ma.x"
 plugins/    one folder per plugin (kebab-case)
   <name>/plugin.lua   manifest: display name, file (k- prefix), version
   <name>/main.lua     entry, returns start[, cleanup]
-tools/      bundler, rule checker, installer
-test/       mirrors lib/, plugins/ and tools/ one to one
+dev/        developer scripts, never shipped to MA
+  build/    bundler.lua (logic), bundle-plugin.lua (command line)
+  lint/     code-rules.lua (logic), check-code-rules.lua (command line)
+test/       mirrors lib/, plugins/ and dev/ one to one
+pre-commit.ps1  format check + lint + code rules + tests
+install.ps1     pre-commit, bundle to dist/, copy to MA
 vendor/     other people's code. Do not edit. Not linted.
 scratch/    experiments and probes. Ignored by Git and tools.
 dist/       build output. Ignored by Git.
@@ -66,7 +70,7 @@ Enforced by tools:
   luacheck `std = "lua53"`).
 - Only printable ASCII and LF line endings. Build non-ASCII characters
   with `string.char(...)` or `utf8.char(...)`.
-- No comments in code files (`tools/check-rules.lua`). No inline
+- No comments in code files (`dev/lint/code-rules.lua`). No inline
   luacheck config (`inline = false`).
 - Cyclomatic complexity at most 10 per function.
 - Never make a tool less strict. If a rule blocks you, change the code.

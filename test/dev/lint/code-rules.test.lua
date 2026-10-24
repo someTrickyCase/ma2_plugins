@@ -1,5 +1,5 @@
 local lu = require("luaunit")
-local checkRules = require("tools.check-rules")
+local checkRules = require("dev.lint.code-rules")
 
 local find = checkRules.findViolations
 

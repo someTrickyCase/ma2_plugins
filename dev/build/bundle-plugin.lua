@@ -1,6 +1,6 @@
 package.path = "./?.lua;" .. package.path
 
-local bundle = require("tools.bundle")
+local bundle = require("dev.build.bundler")
 
 local pluginName, outFolder, commit, date, slot = table.unpack(arg)
 

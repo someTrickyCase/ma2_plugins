@@ -42,7 +42,7 @@ cd C:\k_ma2programming
 
 The script:
 
-1. runs every check (`check.ps1`) and **stops if anything is red**
+1. runs every check (`pre-commit.ps1`) and **stops if anything is red**
 2. builds one Lua file and one XML file in `dist\`
 3. checks the built file (valid Lua 5.3, our code rules)
 4. copies both files to the plugins folder of the **newest** MA2
@@ -143,7 +143,7 @@ Not tested yet. Two ways that should work:
 
 | You see                                   | Do this                                     |
 | ----------------------------------------- | ------------------------------------------- |
-| `FAILED: checks are red`                  | Run `.\check.ps1` to see what is wrong      |
+| `FAILED: checks are red`                  | Run `.\pre-commit.ps1` to see what is wrong |
 | `FAILED: unknown plugin 'x'`              | Use a folder name from `plugins\`           |
 | `FAILED: no MA2 data folder found`        | Is MA2 onPC installed? Check `-MaVersion`   |
 | `lua53 is not recognized`                 | Open a new terminal. Check the PATH         |
@@ -155,4 +155,4 @@ Not tested yet. Two ways that should work:
 
 Rules, layout and conventions: `CLAUDE.md`. Everything we know about
 the MA2 Lua API: the `ma2-plugins` skill in `.claude/skills/`. Run
-`.\check.ps1` before every commit.
+`.\pre-commit.ps1` before every commit.

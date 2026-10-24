@@ -40,9 +40,9 @@ if (-not (Test-Path "plugins/$Plugin/plugin.lua")) {
   Stop-WithError "unknown plugin '$Plugin'"
 }
 
-& .\check.ps1 | Out-Null
+& .\pre-commit.ps1 | Out-Null
 if ($LASTEXITCODE -ne 0) {
-  Stop-WithError 'checks are red, run .\check.ps1 to see why'
+  Stop-WithError 'checks are red, run .\pre-commit.ps1 to see why'
 }
 
 New-Item -ItemType Directory -Force dist -WhatIf:$false | Out-Null
@@ -51,7 +51,7 @@ $bundleArguments = @($Plugin, 'dist', (Get-Commit), $date)
 if ($At) {
   $bundleArguments += $At
 }
-$built = @(lua53 tools/bundle-cli.lua @bundleArguments)
+$built = @(lua53 dev/build/bundle-plugin.lua @bundleArguments)
 if ($LASTEXITCODE -ne 0) {
   Stop-WithError 'bundling failed'
 }
@@ -61,7 +61,7 @@ luac53 -p $luaFile
 if ($LASTEXITCODE -ne 0) {
   Stop-WithError "$luaFile is not valid Lua 5.3"
 }
-lua53 tools/check-rules-cli.lua $luaFile
+lua53 dev/lint/check-code-rules.lua $luaFile
 if ($LASTEXITCODE -ne 0) {
   Stop-WithError "$luaFile breaks the code rules"
 }

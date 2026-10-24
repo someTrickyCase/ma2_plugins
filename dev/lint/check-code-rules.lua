@@ -1,6 +1,6 @@
 package.path = "./?.lua;" .. package.path
 
-local checkRules = require("tools.check-rules")
+local checkRules = require("dev.lint.code-rules")
 
 local function readFile(path)
   local file = assert(io.open(path, "rb"))

@@ -20,6 +20,6 @@ function Invoke-Step([string]$name, [scriptblock]$command) {
 
 Invoke-Step 'format' { stylua --check . }
 Invoke-Step 'lint' { luacheck . }
-Invoke-Step 'rules' { lua53 tools/check-rules-cli.lua @luaFiles }
+Invoke-Step 'rules' { lua53 dev/lint/check-code-rules.lua @luaFiles }
 Invoke-Step 'tests' { lua53 test/run.lua @testFiles }
 Write-Host 'All checks passed' -ForegroundColor Green
