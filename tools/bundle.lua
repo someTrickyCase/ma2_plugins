@@ -124,15 +124,21 @@ local function xml(parts)
   }, "\n") .. "\n"
 end
 
-local function commands(parts, slot)
+local function instructions(parts, slot)
   local target = slot or parts.slot
   if not target then
     error("no plugin slot: add slot to plugin.lua or pass one", 2)
   end
   local pool = "Plugin " .. target
   return {
-    import = string.format('Import "%s.xml" At %s', parts.file, pool),
-    run = pool,
+    "MA2 commands, paste them in this order:",
+    "",
+    "  1. Only when updating, remove the old copy:",
+    "     Delete " .. pool,
+    "  2. Load the plugin into the pool:",
+    string.format('     Import "%s.xml" At %s', parts.file, pool),
+    "  3. Run it (on a show copy first!):",
+    "     " .. pool,
   }
 end
 
@@ -141,5 +147,5 @@ return {
   collect = collect,
   lua = lua,
   xml = xml,
-  commands = commands,
+  instructions = instructions,
 }

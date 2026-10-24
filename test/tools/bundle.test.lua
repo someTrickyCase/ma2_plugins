@@ -173,34 +173,43 @@ function tests.testCollectReadsPluginSlot()
   lu.assertEquals(bundle.collect("answer", read, STAMP).slot, 101)
 end
 
-function tests.testCommandsImportIntoManifestSlot()
+local function partsInSlot(slot)
   local parts = partsWith("return 1\n")
-  parts.slot = 101
-  lu.assertEquals(bundle.commands(parts), {
-    import = 'Import "k-answer.xml" At Plugin 101',
-    run = "Plugin 101",
+  parts.slot = slot
+  return parts
+end
+
+function tests.testInstructionsListCommandsInOrder()
+  lu.assertEquals(bundle.instructions(partsInSlot(101)), {
+    "MA2 commands, paste them in this order:",
+    "",
+    "  1. Only when updating, remove the old copy:",
+    "     Delete Plugin 101",
+    "  2. Load the plugin into the pool:",
+    '     Import "k-answer.xml" At Plugin 101',
+    "  3. Run it (on a show copy first!):",
+    "     Plugin 101",
   })
 end
 
-function tests.testCommandsSlotCanBeOverridden()
-  local parts = partsWith("return 1\n")
-  parts.slot = 101
-  lu.assertEquals(
-    bundle.commands(parts, 5).import,
-    'Import "k-answer.xml" At Plugin 5'
-  )
+function tests.testInstructionsSlotCanBeOverridden()
+  local lines = bundle.instructions(partsInSlot(101), 5)
+  lu.assertEquals(lines[4], "     Delete Plugin 5")
+  lu.assertEquals(lines[6], '     Import "k-answer.xml" At Plugin 5')
+  lu.assertEquals(lines[8], "     Plugin 5")
 end
 
-function tests.testCommandsNeverDeleteAnything()
-  local parts = partsWith("return 1\n")
-  parts.slot = 101
-  local commands = bundle.commands(parts)
-  lu.assertNil(commands.import:lower():find("delete", 1, true))
+function tests.testCommandLinesHoldOnlyTheCommand()
+  local lines = bundle.instructions(partsInSlot(101))
+  for _, index in ipairs({ 4, 6, 8 }) do
+    lu.assertStrMatches(lines[index], "     %S.*%S")
+    lu.assertNil(lines[index]:find("  ", 6, true))
+  end
 end
 
-function tests.testCommandsNeedASlot()
+function tests.testInstructionsNeedASlot()
   lu.assertErrorMsgContains("no plugin slot", function()
-    bundle.commands(partsWith("return 1\n"))
+    bundle.instructions(partsWith("return 1\n"))
   end)
 end
 

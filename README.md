@@ -60,12 +60,18 @@ Several MA2 versions installed? Pick one:
 
 ## 3. Import it in MA2
 
-At the end, `install.ps1` prints the MA2 commands and puts the import
-line **into your clipboard**. Click the MA2 command line, press
-`Ctrl+V`, then `Enter`:
+At the end, `install.ps1` prints every MA2 command you need, in order.
+Each command is on its own line, so it is easy to copy:
 
 ```
-Import "k-channel-to-fixture.xml" At Plugin 101
+MA2 commands, paste them in this order:
+
+  1. Only when updating, remove the old copy:
+     Delete Plugin 101
+  2. Load the plugin into the pool:
+     Import "k-channel-to-fixture.xml" At Plugin 101
+  3. Run it (on a show copy first!):
+     Plugin 101
 ```
 
 Each plugin has its own pool slot in its `plugin.lua` (`slot = 101`).
@@ -75,9 +81,6 @@ just for this time:
 ```powershell
 .\install.ps1 -Plugin channel-to-fixture -At 5
 ```
-
-The pasted line never deletes or runs anything. Run the plugin yourself
-with the second printed line (`Plugin 101`).
 
 The **System Monitor** then shows the version stamp:
 
@@ -91,14 +94,12 @@ Channel to Fixture 0.1.0 (e8482d2, 2026-10-24)
 ## 4. Update to a new version
 
 MA2 keeps **its own copy** of a plugin inside the show. Copying new files
-is not enough. After `install.ps1`:
+is not enough. After `install.ps1`, paste commands 1 and 2 from its list:
 
 ```
 Delete Plugin 101
 Import "k-channel-to-fixture.xml" At Plugin 101
 ```
-
-(The second line is in your clipboard again.)
 
 Then check the version stamp in the System Monitor.
 

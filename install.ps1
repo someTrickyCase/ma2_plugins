@@ -55,7 +55,7 @@ $built = @(lua53 tools/bundle-cli.lua @bundleArguments)
 if ($LASTEXITCODE -ne 0) {
   Stop-WithError 'bundling failed'
 }
-$luaFile, $xmlFile, $importCommand, $runCommand = $built
+$luaFile, $xmlFile, $instructions = $built
 
 luac53 -p $luaFile
 if ($LASTEXITCODE -ne 0) {
@@ -73,17 +73,12 @@ foreach ($file in $luaFile, $xmlFile) {
   }
 }
 
-Set-Clipboard -Value $importCommand -WhatIf:$false
-
 if ($WhatIfPreference) {
   Write-Host 'Dry run: nothing was copied' -ForegroundColor Cyan
 } else {
   Write-Host "Installed to $target" -ForegroundColor Green
 }
 Write-Host ''
-Write-Host 'Paste into the MA2 command line (already in your clipboard):'
-Write-Host "  $importCommand" -ForegroundColor Yellow
-Write-Host "Updating? Delete the old copy first: Delete $runCommand"
-Write-Host ''
-Write-Host 'Then run it with:'
-Write-Host "  $runCommand" -ForegroundColor Yellow
+foreach ($line in $instructions) {
+  Write-Host $line
+}

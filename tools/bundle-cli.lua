@@ -23,11 +23,13 @@ end
 local stamp = { commit = commit, date = date }
 local parts = bundle.collect(pluginName, readFile, stamp)
 local base = outFolder .. "/" .. parts.file
-local commands = bundle.commands(parts, slot and math.tointeger(tonumber(slot)))
+local target = slot and math.tointeger(tonumber(slot))
+local instructions = bundle.instructions(parts, target)
 
 writeFile(base .. ".lua", bundle.lua(parts))
 writeFile(base .. ".xml", bundle.xml(parts))
 print(base .. ".lua")
 print(base .. ".xml")
-print(commands.import)
-print(commands.run)
+for _, line in ipairs(instructions) do
+  print(line)
+end
