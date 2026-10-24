@@ -438,4 +438,9 @@ files do not. `[M]`
 9. ~~Does `getobj.parent(handle("Channel 802"))` return the layer?~~
    Yes. `[V]`
 10. How fast is one `cd /` commit in a big show (hundreds of fixtures)?
+11. Does `Import "x.xml" At Plugin N` on an **occupied** slot ask to
+    overwrite, refuse, or overwrite silently?
+12. Is `gma.sleep(0.01)` after every step needed to keep the console
+    and the progress window alive? (see `lib/ma/swap-flow.lua`)
+13. Does a plugin travel inside the show file to a real console?
 8. Does `assign Fixture 1001 /FixId=...` work **without** `cd`?
