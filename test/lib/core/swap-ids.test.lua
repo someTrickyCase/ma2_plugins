@@ -20,7 +20,10 @@ end
 local tests = {}
 
 function tests.testEmptyPatchNeedsNoSteps()
-  lu.assertEquals(channelToFixture({}), { steps = {}, conflicts = {} })
+  lu.assertEquals(
+    channelToFixture({}),
+    { steps = {}, conflicts = {}, skipped = {} }
+  )
 end
 
 function tests.testMovesChannelIdToFixtureId()
@@ -62,13 +65,45 @@ function tests.testClearsAllOldIdsBeforeSettingAnyNewOne()
   })
 end
 
-function tests.testTakenTargetIsConflictAndPlansNoSteps()
+function tests.testTakenTargetIsConflictAndBothAreSkipped()
   local wash = fixture("MQuaWBa 1", nil, 101)
   local par = fixture("sirius", 101, nil)
   lu.assertEquals(channelToFixture({ wash, par }), {
     steps = {},
     conflicts = { { id = 101, fixtures = { wash, par } } },
+    skipped = { wash, par },
   })
+end
+
+function tests.testFixturesWithoutConflictStillMove()
+  local wash = fixture("wash", nil, 101)
+  local par = fixture("par", 101, nil)
+  local free = fixture("free", 900, nil)
+  lu.assertEquals(channelToFixture({ wash, par, free }).steps, {
+    set(free, "fixId", 900),
+    clear(free, "chaId"),
+  })
+end
+
+function tests.testSkippedFixtureKeepsItsTargetIdAndBlocksAMover()
+  local a = fixture("A", 5, 7)
+  local b = fixture("B", nil, 5)
+  local c = fixture("C", 7, nil)
+  lu.assertEquals(channelToFixture({ a, b, c }), {
+    steps = {},
+    conflicts = {
+      { id = 5, fixtures = { a, b } },
+      { id = 7, fixtures = { a, c } },
+    },
+    skipped = { a, b, c },
+  })
+end
+
+function tests.testSkippedListFollowsPatchOrder()
+  local par = fixture("par", 101, nil)
+  local free = fixture("free", 900, nil)
+  local wash = fixture("wash", nil, 101)
+  lu.assertEquals(channelToFixture({ par, free, wash }).skipped, { par, wash })
 end
 
 function tests.testIdFreedByOverwriteIsNoConflict()
