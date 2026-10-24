@@ -1,7 +1,7 @@
 $ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot
 
-$skipped = '\\(vendor|scratch|dist|\.git)\\'
+$skipped = '[\\/](vendor|scratch|dist|\.git)[\\/]'
 $luaFiles = @(
   Get-ChildItem -Recurse -File -Filter *.lua |
     Where-Object { $_.FullName -notmatch $skipped } |

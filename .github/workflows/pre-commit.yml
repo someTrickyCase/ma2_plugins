@@ -1,0 +1,39 @@
+name: pre-commit
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: leafo/gh-actions-lua@v10
+        with:
+          luaVersion: "5.3.6"
+
+      - uses: leafo/gh-actions-luarocks@v4
+
+      - name: Install luacheck
+        run: luarocks install luacheck 1.2.0-1
+
+      - name: Name Lua lua53, like on Windows
+        run: ln -s "$(command -v lua)" "$(dirname "$(command -v lua)")/lua53"
+
+      - name: Install StyLua
+        env:
+          RELEASES: https://github.com/JohnnyMorganz/StyLua/releases/download
+          VERSION: v2.3.1
+        run: |
+          curl -fsSL -o stylua.zip \
+            "$RELEASES/$VERSION/stylua-linux-x86_64.zip"
+          unzip -q stylua.zip -d "$HOME/bin"
+          rm stylua.zip
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+
+      - name: Run pre-commit checks
+        shell: pwsh
+        run: ./pre-commit.ps1
