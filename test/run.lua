@@ -3,7 +3,8 @@ package.path = "./lib/?.lua;./?.lua;./vendor/?.lua;" .. package.path
 local lu = require("luaunit")
 
 local function suiteName(path)
-  return (path:gsub("^%./", ""):gsub("%.test%.lua$", ""))
+  local slashed = path:gsub("\\", "/")
+  return (slashed:gsub("^%./", ""):gsub("%.test%.lua$", ""))
 end
 
 local suites = {}

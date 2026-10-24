@@ -24,37 +24,59 @@ it after every probe.
 
 ## Tools
 
-All in `C:\lua-executables` (user PATH):
+| Tool            | Version | Where                 | Config               |
+| --------------- | ------- | --------------------- | -------------------- |
+| `lua53`         | 5.3.6   | `C:\lua-executables`  |                      |
+| `luacheck`      | 1.2.0   | `C:\lua-executables`  | `.luacheckrc`        |
+| `stylua`        | 2.3.1   | `C:\lua-executables`  | `stylua.toml`        |
+| LuaUnit         | 3.4     | `vendor/luaunit.lua`  |                      |
+| `go`            | 1.27.0  | winget                | `go.mod`             |
+| `golangci-lint` | 2.15.0  | winget                | `.golangci.yml`      |
+| `task`          | 3.54.0  | winget                | `Taskfile.yml`       |
 
-| Tool       | Version | Config               |
-| ---------- | ------- | -------------------- |
-| `lua53`    | 5.3.6   |                      |
-| `luacheck` | 1.2.0   | `.luacheckrc`        |
-| `stylua`   | 2.3.1   | `stylua.toml`        |
-| LuaUnit    | 3.4     | `vendor/luaunit.lua` |
-
-CI installs the same versions (`.github/workflows/pre-commit.yml`).
-When you upgrade a tool, change both places.
+CI installs the same versions (`.github/workflows/ci.yml`). When you
+upgrade a tool, change both places.
 
 ## Commands
 
+All commands go through Task. `task` alone lists them.
+
 | Command                                | What it does                        |
 | -------------------------------------- | ----------------------------------- |
-| `.\pre-commit.ps1`                     | format check + lint + rules + tests |
+| `task check`                           | everything CI checks: Lua + Go      |
+| `task lua` / `task go`                 | only one half                       |
+| `task fmt`                             | format all Lua and Go files         |
+| `task build`                           | build `dist/ma2kit.exe`             |
 | `.\install.ps1 -Plugin <name>`         | check, bundle to `dist/`, copy      |
 | `.\install.ps1 -Plugin <name> -WhatIf` | same, but copy nothing              |
-| `stylua .`                             | format all files                    |
-| `lua53 test/run.lua <files>`           | run some test files                 |
+| `lua53 test/run.lua <files>`           | run some Lua test files             |
+| `go test ./internal/<pkg>`             | run one Go package's tests          |
 
-`.\pre-commit.ps1` must pass before every commit.
+`task check` must pass before every commit. `pre-commit.ps1` is only a
+wrapper around it, kept for `install.ps1` until `ma2kit install`
+replaces both.
 
 ## CI
 
-GitHub Actions runs `pre-commit.ps1` on every pull request and on every
-push to `main`, on Ubuntu with PowerShell 7. It is the same script as on
-the laptop, so a check can't pass locally and fail in CI (or the other
-way round). Keep `pre-commit.ps1` working on both Windows and Linux:
-accept `\` and `/` in paths.
+`.github/workflows/ci.yml` runs on every pull request and every push to
+`main`, on Ubuntu, with two parallel jobs: `lua` runs `task lua`, `go`
+runs `task go`. CI only calls Task, so the laptop and CI run exactly the
+same commands. Keep the Taskfile working on Windows and Linux.
+
+## Go code
+
+- Module `github.com/someTrickyCase/ma2_plugins`. `cmd/ma2kit/main.go`
+  only calls `internal/cli.Run`; all logic lives in `internal/`.
+- golangci-lint runs **every** linter. Only these are off, each for a
+  reason: `wsl`, `gomodguard`, `exhaustruct` (deprecated, their `_v2` /
+  `_v5` successors are on), revive `exported` and `package-comments`
+  (they demand doc comments; our rule is no comments).
+- `depguard` allows only the Go standard library and this module. A new
+  dependency must be added to `.golangci.yml` on purpose.
+- Tests follow Go's convention: `x_test.go` next to `x.go`, in the
+  external `x_test` package. Table tests for many cases of one function,
+  small `expect...` helpers instead of repeated checks.
+- No comments, as in Lua. Code explains itself through names.
 
 ## Layout
 
@@ -70,8 +92,11 @@ dev/        developer scripts, never shipped to MA
   lint/     code-rules.lua (logic), check-code-rules.lua (command line)
 test/       mirrors lib/, plugins/ and dev/ one to one
   support/  fake-gma.lua: a fake MA for ma/ tests
+cmd/ma2kit/ Go entry point, one line of logic
+internal/   Go packages, each with its _test.go files
 .github/    CI workflow
-pre-commit.ps1  format check + lint + code rules + tests
+Taskfile.yml    the one entry point for every check and build
+pre-commit.ps1  wrapper: task check
 install.ps1     pre-commit, bundle to dist/, copy to MA
 vendor/     other people's code. Do not edit. Not linted.
 scratch/    experiments and probes. Ignored by Git and tools.
