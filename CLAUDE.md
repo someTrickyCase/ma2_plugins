@@ -34,6 +34,8 @@ All in `C:\lua-executables` (user PATH):
 | Command                    | What it does                              |
 | -------------------------- | ----------------------------------------- |
 | `.\check.ps1`              | format check + lint + rules + tests       |
+| `.\install.ps1 -Plugin <name>` | check, bundle to `dist/`, copy to MA  |
+| `.\install.ps1 -Plugin <name> -WhatIf` | same, but copy nothing        |
 | `stylua .`                 | format all files                          |
 | `lua53 test/run.lua <files>` | run some test files                     |
 
@@ -46,7 +48,7 @@ lib/        shared modules, required as "core.x" or "ma.x"
   core/     pure logic, no gma
   ma/       thin adapters around the gma API
 plugins/    one folder per plugin (kebab-case)
-  <name>/plugin.lua   manifest: display name, file, version, modules
+  <name>/plugin.lua   manifest: display name, file (k- prefix), version
   <name>/main.lua     entry, returns start[, cleanup]
 tools/      bundler, rule checker, installer
 test/       mirrors lib/, plugins/ and tools/ one to one
