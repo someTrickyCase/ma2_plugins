@@ -1,4 +1,5 @@
 local LABELS = { fixId = "Fixture ID", chaId = "Channel ID" }
+local POOL_LABEL = "Conflicts"
 
 local function counted(count, word)
   if count == 1 then
@@ -30,17 +31,52 @@ local function conflictLine(conflict, to)
 end
 
 local function conflicts(list, to)
-  local lines = {
-    "Cannot move: " .. counted(#list, "conflict") .. ". Nothing was changed.",
-  }
+  local lines = {}
   for _, conflict in ipairs(list) do
     lines[#lines + 1] = conflictLine(conflict, to)
   end
   return lines
 end
 
+local function poolsText(pools)
+  return string.format(
+    'Group %d and Layout %d "%s"',
+    pools.group,
+    pools.layout,
+    POOL_LABEL
+  )
+end
+
+local function onlyConflicts(list, to, pools)
+  local lines = {
+    "Cannot move: " .. counted(#list, "conflict") .. ". No ID was changed.",
+    "See " .. poolsText(pools) .. ".",
+  }
+  for _, line in ipairs(conflicts(list, to)) do
+    lines[#lines + 1] = line
+  end
+  return lines
+end
+
 local function direction(from, to)
   return string.format("from %s to %s", LABELS[from], LABELS[to])
+end
+
+local function conflictQuestion(plan, from, to, pools)
+  local others = counted(movedCount(plan), "fixture")
+  return {
+    counted(#plan.conflicts, "conflict") .. ": see " .. poolsText(pools) .. ".",
+    string.format("Move the other %s %s?", others, direction(from, to)),
+  }
+end
+
+local function skipped(plan, pools)
+  local fixtures = counted(#plan.skipped, "fixture")
+  return "Skipped " .. fixtures .. ": see " .. poolsText(pools) .. "."
+end
+
+local function cancelled()
+  return "Cancelled. No ID was changed."
 end
 
 local function question(plan, from, to)
@@ -59,6 +95,10 @@ end
 
 return {
   conflicts = conflicts,
+  onlyConflicts = onlyConflicts,
+  conflictQuestion = conflictQuestion,
+  skipped = skipped,
+  cancelled = cancelled,
   question = question,
   done = done,
   nothingToDo = nothingToDo,

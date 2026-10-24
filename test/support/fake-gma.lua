@@ -4,6 +4,9 @@ local ASSIGN_PATTERN = "cd (%d+); assign (%d+) /(%a+)=(.*)$"
 local HANDLE_PATTERN = "^(%a+) (%d+)$"
 local ID_PROPERTIES = { Fixture = "FixId", Channel = "ChaId" }
 local PROGRESS_HANDLE = 7
+local STORE_PATTERN = '^Store (%a+) (%d+) "(.-)" /nc$'
+local RECALL_PATTERN = "^Group (%d+)$"
+local SELECTED_COUNT = "SELECTEDFIXTURESCOUNT"
 
 local function object(class, props)
   return { class = class, props = props, children = {} }
@@ -58,6 +61,28 @@ local function findByName(layers, name)
   return nil
 end
 
+local function poolObject(label, members)
+  local pool = object("CMD_GROUP", { Name = label })
+  pool.label = label
+  pool.members = members
+  return pool
+end
+
+local function buildPools(options)
+  local pools = { Group = {}, Layout = {} }
+  for _, number in ipairs(options.groups or {}) do
+    pools.Group[number] = poolObject("old", {})
+  end
+  for _, number in ipairs(options.layouts or {}) do
+    pools.Layout[number] = poolObject("old", {})
+  end
+  return pools
+end
+
+local function copy(list)
+  return { table.unpack(list) }
+end
+
 local function applyEdit(layers, edit)
   local layer = layers.children[edit.layer]
   local fixture = layer.children[edit.position]
@@ -70,7 +95,37 @@ end
 
 local function new(options)
   local root, layers = buildPatch(options.layers or {})
-  local fake = { commands = {}, dest = root, pending = {} }
+  local pools = buildPools(options)
+  local fake = { commands = {}, dest = root, pending = {}, selection = {} }
+
+  local function store(kind, number, label)
+    local members = copy(fake.selection)
+    if options.groupLosesOne and kind == "Group" then
+      members[#members] = nil
+    end
+    pools[kind][tonumber(number)] = poolObject(label, members)
+  end
+
+  local function select(command)
+    local fixture = findByName(layers, command)
+    if fixture and not options.selectNothing then
+      fake.selection[#fake.selection + 1] = fixture
+    end
+  end
+
+  local function selectionCommand(command)
+    local kind, number, label = command:match(STORE_PATTERN)
+    local recalled = command:match(RECALL_PATTERN)
+    if command == "ClearSelection" then
+      fake.selection = {}
+    elseif kind and not options.storeIgnored then
+      store(kind, number, label)
+    elseif recalled then
+      fake.selection = copy(pools.Group[tonumber(recalled)].members)
+    else
+      select(command)
+    end
+  end
 
   local function commit()
     for _, edit in ipairs(fake.pending) do
@@ -104,6 +159,8 @@ local function new(options)
       remember(layer, position, property, value)
     elseif endsWith(command, LAYERS_CD) and not options.cdLandsNowhere then
       fake.dest = layers
+    else
+      selectionCommand(command)
     end
   end
 
@@ -163,9 +220,21 @@ local function new(options)
       end,
     },
     show = {
+      getvar = function(name)
+        if name == SELECTED_COUNT then
+          return tostring(#fake.selection)
+        end
+      end,
       getobj = {
         handle = function(name)
+          local kind, number = name:match(HANDLE_PATTERN)
+          if pools[kind] then
+            return pools[kind][tonumber(number)]
+          end
           return findByName(layers, name)
+        end,
+        label = function(handle)
+          return handle.label
         end,
         class = function(handle)
           return handle.class
@@ -196,6 +265,14 @@ local function new(options)
 
   function fake.lastCommand()
     return fake.commands[#fake.commands]
+  end
+
+  function fake.poolMembers(kind, number)
+    local names = {}
+    for _, fixture in ipairs(pools[kind][number].members) do
+      names[#names + 1] = fixture.props.Name
+    end
+    return names
   end
 
   function fake.propsAt(layerNumber, position)

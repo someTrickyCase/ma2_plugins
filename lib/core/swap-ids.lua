@@ -32,14 +32,17 @@ local function stepsFor(moving, from, to)
   return steps
 end
 
-local function finalId(fixture, from, to)
+local function finalId(fixture, from, to, skipped)
+  if skipped[fixture] then
+    return fixture[to]
+  end
   return fixture[from] or fixture[to]
 end
 
-local function ownersByFinalId(fixtures, from, to)
+local function ownersByFinalId(fixtures, from, to, skipped)
   local owners, ids = {}, {}
   for _, fixture in ipairs(fixtures) do
-    local id = finalId(fixture, from, to)
+    local id = finalId(fixture, from, to, skipped)
     if id then
       if not owners[id] then
         owners[id] = {}
@@ -52,8 +55,8 @@ local function ownersByFinalId(fixtures, from, to)
   return owners, ids
 end
 
-local function conflictsFor(fixtures, from, to)
-  local owners, ids = ownersByFinalId(fixtures, from, to)
+local function conflictsFor(fixtures, from, to, skipped)
+  local owners, ids = ownersByFinalId(fixtures, from, to, skipped)
   local conflicts = {}
   for _, id in ipairs(ids) do
     if #owners[id] > 1 then
@@ -63,12 +66,57 @@ local function conflictsFor(fixtures, from, to)
   return conflicts
 end
 
-local function plan(fixtures, from, to)
-  local conflicts = conflictsFor(fixtures, from, to)
-  if #conflicts > 0 then
-    return { steps = {}, conflicts = conflicts }
+local function skipAll(conflict, skipped)
+  local added = false
+  for _, fixture in ipairs(conflict.fixtures) do
+    added = added or not skipped[fixture]
+    skipped[fixture] = true
   end
-  return { steps = stepsFor(movers(fixtures, from), from, to), conflicts = {} }
+  return added
+end
+
+local function byId(a, b)
+  return a.id < b.id
+end
+
+local function skipUntilStable(fixtures, from, to)
+  local skipped, found = {}, {}
+  local changed = true
+  while changed do
+    changed = false
+    for _, conflict in ipairs(conflictsFor(fixtures, from, to, skipped)) do
+      if skipAll(conflict, skipped) then
+        found[#found + 1] = conflict
+        changed = true
+      end
+    end
+  end
+  table.sort(found, byId)
+  return skipped, found
+end
+
+local function filter(fixtures, keep)
+  local list = {}
+  for _, fixture in ipairs(fixtures) do
+    if keep(fixture) then
+      list[#list + 1] = fixture
+    end
+  end
+  return list
+end
+
+local function plan(fixtures, from, to)
+  local skipped, conflicts = skipUntilStable(fixtures, from, to)
+  local free = filter(fixtures, function(fixture)
+    return not skipped[fixture]
+  end)
+  return {
+    steps = stepsFor(movers(free, from), from, to),
+    conflicts = conflicts,
+    skipped = filter(fixtures, function(fixture)
+      return skipped[fixture]
+    end),
+  }
 end
 
 return { plan = plan }

@@ -28,6 +28,25 @@ local function conflictingShow(options)
   })
 end
 
+local function mixedShow(options)
+  return fakeShow(options, {
+    {
+      name = "tr_washes",
+      fixtures = { { name = "MQuaWBa 1", fixId = "101" } },
+    },
+    {
+      name = "pars",
+      fixtures = {
+        { name = "sirius", chaId = "101" },
+        { name = "Dim 1", chaId = "801" },
+      },
+    },
+  })
+end
+
+local CONFLICT_LINE = "Fixture ID 101: MQuaWBa 1 (tr_washes), sirius (pars)"
+local POOLS_LINE = 'Group 1 and Layout 1 "Conflicts"'
+
 local function runFlow(fake)
   local flow =
     swapFlow.new(fake.gma, { title = TITLE, from = "chaId", to = "fixId" })
@@ -77,20 +96,22 @@ function tests.testCancelChangesNothing()
   lu.assertEquals(assignCount(fake), 0)
   lu.assertEquals(fake.messages, {})
   lu.assertEquals(fake.echoes, {
-    TITLE .. ": Cancelled. Nothing was changed.",
+    TITLE .. ": Cancelled. No ID was changed.",
   })
 end
 
-function tests.testShowsConflictsWithoutAsking()
+function tests.testOnlyConflictsShowsGroupWithoutAsking()
   local fake = conflictingShow({})
   runFlow(fake)
   lu.assertEquals(fake.questions, {})
   lu.assertEquals(assignCount(fake), 0)
+  lu.assertEquals(fake.poolMembers("Group", 1), { "MQuaWBa 1", "sirius" })
   lu.assertEquals(
     fake.messages[1].text,
     table.concat({
-      "Cannot move: 1 conflict. Nothing was changed.",
-      "Fixture ID 101: MQuaWBa 1 (tr_washes), sirius (pars)",
+      "Cannot move: 1 conflict. No ID was changed.",
+      "See " .. POOLS_LINE .. ".",
+      CONFLICT_LINE,
     }, "|")
   )
 end
@@ -99,9 +120,63 @@ function tests.testEchoesEveryLineToSystemMonitor()
   local fake = conflictingShow({})
   runFlow(fake)
   lu.assertEquals(fake.echoes, {
-    TITLE .. ": Cannot move: 1 conflict. Nothing was changed.",
-    TITLE .. ": Fixture ID 101: MQuaWBa 1 (tr_washes), sirius (pars)",
+    TITLE .. ": Cannot move: 1 conflict. No ID was changed.",
+    TITLE .. ": See " .. POOLS_LINE .. ".",
+    TITLE .. ": " .. CONFLICT_LINE,
   })
+end
+
+function tests.testConflictsAskToMoveTheOthers()
+  local fake = mixedShow({})
+  runFlow(fake)
+  lu.assertEquals(fake.questions, {
+    {
+      title = TITLE,
+      text = table.concat({
+        "1 conflict: see " .. POOLS_LINE .. ".",
+        "Move the other 1 fixture from Channel ID to Fixture ID?",
+      }, "|"),
+    },
+  })
+  lu.assertEquals(fake.echoes[1], TITLE .. ": " .. CONFLICT_LINE)
+end
+
+function tests.testOkMovesOnlyFixturesWithoutConflict()
+  local fake = mixedShow({})
+  runFlow(fake)
+  lu.assertEquals(fake.propsAt(2, 1).ChaId, "101")
+  lu.assertEquals(fake.propsAt(2, 2), {
+    Name = "Dim 1",
+    FixId = "801",
+    ChaId = "-",
+  })
+  lu.assertEquals(
+    fake.messages[1].text,
+    table.concat({
+      "Done: 1 fixture moved from Channel ID to Fixture ID.",
+      "Skipped 2 fixtures: see " .. POOLS_LINE .. ".",
+    }, "|")
+  )
+end
+
+function tests.testCancelAfterConflictsKeepsGroupAndIds()
+  local fake = mixedShow({ confirm = false })
+  runFlow(fake)
+  lu.assertEquals(assignCount(fake), 0)
+  lu.assertEquals(fake.poolMembers("Group", 1), { "MQuaWBa 1", "sirius" })
+  lu.assertEquals(
+    fake.echoes[#fake.echoes],
+    TITLE .. ": Cancelled. No ID was changed."
+  )
+end
+
+function tests.testGroupProblemStopsBeforeAsking()
+  local fake = mixedShow({ storeIgnored = true })
+  runFlow(fake)
+  lu.assertEquals(fake.questions, {})
+  lu.assertEquals(assignCount(fake), 0)
+  lu.assertStrContains(fake.messages[1].text, "Group 1 Conflicts")
+  lu.assertStrContains(fake.messages[1].text, "No ID was changed.")
 end
 
 function tests.testSaysWhenNothingToMove()

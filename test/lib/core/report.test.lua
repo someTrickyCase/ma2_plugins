@@ -11,18 +11,13 @@ local function steps(...)
   for _, action in ipairs({ ... }) do
     list[#list + 1] = { action = action }
   end
-  return { steps = list, conflicts = {} }
+  return { steps = list, conflicts = {}, skipped = {} }
 end
+
+local POOLS = { group = 3, layout = 2 }
+local ONE_CONFLICT = { { id = 101, fixtures = { wash, par } } }
 
 local tests = {}
-
-function tests.testOneConflictIsSingular()
-  local conflicts = { { id = 101, fixtures = { wash, par } } }
-  lu.assertEquals(report.conflicts(conflicts, "fixId"), {
-    "Cannot move: 1 conflict. Nothing was changed.",
-    "Fixture ID 101: MQuaWBa 1 (tr_washes), sirius (pars)",
-  })
-end
 
 function tests.testListsEveryConflict()
   local conflicts = {
@@ -30,7 +25,6 @@ function tests.testListsEveryConflict()
     { id = 301, fixtures = { lipar, profile } },
   }
   lu.assertEquals(report.conflicts(conflicts, "fixId"), {
-    "Cannot move: 2 conflicts. Nothing was changed.",
     "Fixture ID 101: MQuaWBa 1 (tr_washes), sirius (pars)",
     "Fixture ID 301: LP1895 1 (tr_pars), Eclipse 750 HD 1 (led Profiles)",
   })
@@ -39,9 +33,39 @@ end
 function tests.testNamesChannelIdInReverseDirection()
   local conflicts = { { id = 202, fixtures = { wash, par } } }
   lu.assertEquals(
-    report.conflicts(conflicts, "chaId")[2],
+    report.conflicts(conflicts, "chaId")[1],
     "Channel ID 202: MQuaWBa 1 (tr_washes), sirius (pars)"
   )
+end
+
+function tests.testOnlyConflictsNamesGroupAndLayout()
+  lu.assertEquals(report.onlyConflicts(ONE_CONFLICT, "fixId", POOLS), {
+    "Cannot move: 1 conflict. No ID was changed.",
+    'See Group 3 and Layout 2 "Conflicts".',
+    "Fixture ID 101: MQuaWBa 1 (tr_washes), sirius (pars)",
+  })
+end
+
+function tests.testConflictQuestionAsksAboutTheOthers()
+  local plan = steps("set", "set", "clear", "clear")
+  plan.conflicts = { ONE_CONFLICT[1], ONE_CONFLICT[1] }
+  lu.assertEquals(report.conflictQuestion(plan, "chaId", "fixId", POOLS), {
+    '2 conflicts: see Group 3 and Layout 2 "Conflicts".',
+    "Move the other 2 fixtures from Channel ID to Fixture ID?",
+  })
+end
+
+function tests.testSkippedCountsFixtures()
+  local plan = steps()
+  plan.skipped = { wash, par, lipar }
+  lu.assertEquals(
+    report.skipped(plan, POOLS),
+    'Skipped 3 fixtures: see Group 3 and Layout 2 "Conflicts".'
+  )
+end
+
+function tests.testCancelledSaysNoIdChanged()
+  lu.assertEquals(report.cancelled(), "Cancelled. No ID was changed.")
 end
 
 function tests.testQuestionCountsFixturesNotSteps()
