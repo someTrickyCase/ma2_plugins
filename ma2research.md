@@ -114,6 +114,10 @@ return start, cleanup
   `os.execute('start "" /b script.bat')`. `[M]` `[?]`
 - `gma.timer(fn, dt, maxCount, cleanup)` calls `fn(t, n)` every `dt`
   seconds, `maxCount` times. `[MA]`
+- **File-level state survives between runs.** MA keeps the loaded chunk
+  in memory, so a `local report = {}` at the top of the file still holds
+  the lines of the previous run. Reset state inside the entry
+  function. `[V]`
 
 ## 4. The `gma` API (complete list for 3.9)
 
@@ -142,7 +146,7 @@ commands with `gma.cmd()`. `[MA]`
 | ---------------------------------------- | ---------------------------------------- |
 | `gma.export(file, table)`                | XML                                      |
 | `gma.export_csv(file, table)`            | CSV                                      |
-| `gma.export_json(file, table)`           | JSON, lands in `<data root>\temp\` `[V]` |
+| `gma.export_json(file, table)`           | JSON, lands in `<data root>\temp\` `[V]`. Does **not** escape `"` in strings: invalid JSON `[V]` |
 | `gma.import(file, [subfolder]) -> table` | Reads **XML from `gma.export` only** `[MA]` |
 
 ### 4.3 GUI
@@ -189,6 +193,17 @@ for i = 0, property.amount(h) - 1 do ... property.name(h, i) ... end
 
 Gotcha: a sequence with cues 1..3 has **4** children. Child 0 is the
 hidden cue 0. `[MA]`
+
+Handles by name, tested in Kirk's show `[V]`:
+
+| Call                          | Result                                  |
+| ----------------------------- | --------------------------------------- |
+| `handle("Fixture 1001")`      | `CMD_FIXTURE` "Dim 1 1001" (FixId 1001) |
+| `handle("Channel 801")`       | `CMD_FIXTURE` "Dim 1 801" (ChaId 801)   |
+| `handle("Fixture 801")`       | nil (801 is only a Channel ID)          |
+
+So `Fixture N` and `Channel N` find a fixture **without any `cd`**, and
+they return the same `CMD_FIXTURE` objects as the patch tree.
 
 ### 4.5 DMX
 
@@ -240,8 +255,65 @@ key. `[MA]`
 - `assign <objects> /<Property>=<value>` changes properties of objects
   at the current `cd` location. `[MA]`
   `assign thru /FixId=101`, `assign 1 /Patch=1.001`
-- `gma.cmd` returns `nil` on success and an error text on failure. `[MA]`
-  Check it every time.
+- `gma.cmd` returns an error text on failure. On success it returns
+  **no value at all** (not even `nil`), so `tostring(gma.cmd(x))`
+  crashes with "value expected". Store it first:
+  `local problem = gma.cmd(x)`. `[V]`
+- **Duplicate IDs are stolen, silently.** Assigning FixId 9002 to a
+  fixture while another fixture has 9002 moves the ID: the old owner
+  loses it, no error. `[V]` So a plugin must never create a duplicate,
+  not even for a moment.
+- `cd /; cd "EditSetup"; cd "Layers"; cd 3` enters the layer with
+  **number** 3 ("fren", index 2). `[V]`
+- **Gotcha:** `getobj.compare(getcmddest(), layer)` returned **false**
+  although both were layer "fren 3" (same class, name and index). So
+  `compare` is not reliable for "same object". Compare class + name +
+  index instead. `[V]`
+- **Gotcha:** inside a layer, `assign 2 /FixId=9002` and
+  `assign 802 /FixId=9002` both returned `nil`, but reading the fixture
+  **right after** showed no change, even after `gma.sleep(0.5)`. `[V]`
+  The change **did** appear later: "fren" showed `Fixtures=[9002..9002]`
+  after the plugin had ended with `cd /`. `[V]`
+- **EditSetup is an edit session.** Changes made inside it are applied
+  when you leave it with `cd /`, and are readable **at once** after
+  that. No sleep needed. `[V]` (probe 4)
+
+### Changing IDs: the recipe `[V]` (probe 4)
+
+```
+cd /; cd "EditSetup"; cd "Layers"; cd <layer number>; assign <pos> /FixId=5
+cd /
+```
+
+- `<pos>` is the fixture's **position** in the layer, 1-based
+  (= `getobj.index(fixture) + 1`). Not its ID.
+- Clear an ID with an **empty** value: `/FixId=` or `/ChaId=`.
+- A fixture may have only a FixId or only a ChaId.
+- Children of a layer are **not** sorted by ID: in `tr_profiles`
+  (Fixtures 201..402) Fixture 401 is at index 0. Probably creation
+  order. `[V]` Still, find the position fresh before every command.
+
+### Locating a fixture without walking the tree `[V]` (probe 5)
+
+```lua
+local fixture = getobj.handle("Channel 802")   -- or "Fixture 1001"
+local layer = getobj.parent(fixture)           -- CMD_FIXTURE_LAYER
+local layerNumber = getobj.number(layer)       -- "3" -> cd 3
+local position = getobj.index(fixture) + 1     -- 2   -> assign 2
+```
+
+`getobj.child(layer, getobj.index(fixture))` returns the same fixture
+again. The layer's parent is `Layers` (`CMD_FIXTURE_LAYER_COLLECT`).
+
+### GUI progress window `[V]` (probe 5)
+
+`gma.gui.progress.start(title)`, `setrange(h, 0, n)`, `settext(h, t)`,
+`set(h, i)`, `stop(h)` work. Return a cleanup function from the plugin
+(`return start, cleanup`) that stops the progress window, so it also
+closes when the plugin is stopped halfway.
+- MA's own test patches like this: `cd <position>` into the fixture,
+  `assign 1 /Patch=1.001` (child 1 = the instance), `cd ..`. And it
+  moves fixtures without `cd`: `assign Fixture 101 /posx=2`. `[MA]`
 
 ## 6. The patch tree (EditSetup)
 
@@ -312,9 +384,9 @@ different on different classes.
 | Way                         | Direction | Status                                    |
 | --------------------------- | --------- | ----------------------------------------- |
 | `os.execute`, `io.popen`    | MA -> PC  | Exist on onPC `[V]`. Block MA! (see 3.3)  |
-| `io.open` (write a file)    | MA -> PC  | `[?]`                                     |
+| `io.open` (write a file)    | MA -> PC  | Works, wrote to `%TEMP%` `[V]`            |
 | `gma.export_json` / `gma.import` | both | Works `[V]`. Simple and safe            |
-| LuaSocket                   | both      | `[?]` see below                           |
+| LuaSocket                   | both      | **Built into MA2** `[V]`, see below       |
 | DMX trigger channel         | MA -> PC  | MA outputs Art-Net, a PC service listens  |
 | Telnet remote               | PC -> MA  | Port 30000, must be enabled in Setup `[M]` |
 
@@ -322,13 +394,28 @@ different on different classes.
 
 - MA ships the Lua part of LuaSocket in `plugins\requirements\socket\`.
   It does `require("socket.core")`, the C part. `[V]`
-- No `socket\core.dll` is on disk. `[V]` So either `socket.core` is
-  built into `gma2onpc.exe`, or it is missing. Test:
-  `pcall(require, "socket.core")`. `[?]`
-- **Danger:** a downloaded `core.dll` is built against its own copy of
-  Lua. MA2 has Lua built in (no `lua53.dll`), so loading it would mean
-  two Lua runtimes in one process. That usually crashes. Don't do it
-  during a show. `[M]`
+- No `socket\core.dll` is on disk, but `pcall(require, "socket.core")`
+  returns `true` and a table. So **`socket.core` is built into
+  `gma2onpc.exe`**. `[V]` Real sockets (UDP/TCP) from a plugin are
+  possible. Blocking calls still freeze MA: use timeouts of 0. `[M]`
+- **Never** load a downloaded `core.dll`: it brings its own copy of Lua.
+  Two Lua runtimes in one process usually crash. We don't need it. `[M]`
+
+### `require` search paths `[V]`
+
+```
+package.path  = <data root>/plugins/?.lua;
+                <data root>/plugins/requirements/?.lua
+package.cpath = <data root>/plugins/?.dll;
+                <data root>/plugins/requirements/?.dll
+```
+
+So `require("socket")` finds `plugins/requirements/socket.lua`... if it
+exists there (MA ships `requirements/socket/socket.lua`, so maybe
+`require("socket.socket")`). `[?]`
+A plugin could also `require` our own modules from the plugins folder.
+We bundle anyway: the bundle travels inside the show file, loose module
+files do not. `[M]`
 
 ### Real consoles
 
@@ -340,9 +427,15 @@ different on different classes.
 
 ## 8. Open questions (next probes)
 
-1. How to clear `FixId` / `ChaId` with `assign`.
-2. Does `pcall(require, "socket.core")` work?
-3. Does `io.open` work, and where is its current folder?
+1. ~~How to clear `FixId` / `ChaId`?~~ Empty value: `/FixId=`. `[V]`
+2. ~~Does `pcall(require, "socket.core")` work?~~ Yes, built in. `[V]`
+3. ~~Does `io.open` work?~~ Yes, to `%TEMP%`. Current folder still `[?]`
 4. Does `os.execute('start "" /b ...')` return at once?
 5. Multi-instance fixtures: where do instance IDs live?
-6. Does `getobj.handle("Fixture 101")` work, or only paths after `cd`?
+6. ~~Does `getobj.handle("Fixture 101")` work?~~ Yes, see 4.4. `[V]`
+7. ~~Where does `cd <number>` inside `Layers` land?~~ In the layer with
+   that number. `[V]`
+9. ~~Does `getobj.parent(handle("Channel 802"))` return the layer?~~
+   Yes. `[V]`
+10. How fast is one `cd /` commit in a big show (hundreds of fixtures)?
+8. Does `assign Fixture 1001 /FixId=...` work **without** `cd`?
