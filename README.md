@@ -153,6 +153,6 @@ Not tested yet. Two ways that should work:
 
 ## For developers
 
-Rules, layout and conventions: `CLAUDE.md`. Everything we know about
-the MA2 Lua API: the `ma2-plugins` skill in `.claude/skills/`. Run
-`.\pre-commit.ps1` before every commit.
+Rules, layout, architecture and conventions: `CLAUDE.md`. Run
+`.\pre-commit.ps1` before every commit. GitHub Actions runs the same
+script on every pull request.
