@@ -154,5 +154,5 @@ Not tested yet. Two ways that should work:
 ## For developers
 
 Rules, layout and conventions: `CLAUDE.md`. Everything we know about
-the MA2 Lua API: `ma2research.md`. Run `.\check.ps1` before every
-commit.
+the MA2 Lua API: the `ma2-plugins` skill in `.claude/skills/`. Run
+`.\check.ps1` before every commit.

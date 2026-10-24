@@ -3,8 +3,9 @@
 Kirk's grandMA2 Lua plugins, developed outside MA2 and delivered to it
 with a script. Runs on Windows 11 with grandMA2 onPC 3.9.60.
 
-Everything we know about MA2 and its Lua API is in `ma2research.md`.
-Read it before writing plugin code. Update it after every probe.
+Everything we know about MA2 and its Lua API is in the `ma2-plugins`
+skill (`.claude/skills/ma2-plugins/`). Read it before writing plugin
+code. Update it after every probe.
 
 ## Hard rules
 
