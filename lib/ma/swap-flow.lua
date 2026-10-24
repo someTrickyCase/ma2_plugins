@@ -2,6 +2,7 @@ local swapIds = require("core.swap-ids")
 local report = require("core.report")
 local patchReader = require("ma.patch-reader")
 local patchWriter = require("ma.patch-writer")
+local conflictGroup = require("ma.conflict-group")
 
 local YIELD_SECONDS = 0.01
 local POPUP_LINE_BREAK = "|"
@@ -34,7 +35,11 @@ local function new(gma, options)
     gma.sleep(YIELD_SECONDS)
   end
 
-  local function applyPlan(plan)
+  local function ask(lines)
+    return gma.gui.confirm(title, table.concat(lines, POPUP_LINE_BREAK))
+  end
+
+  local function applyPlan(plan, doneLines)
     progress = gma.gui.progress.start(title)
     gma.gui.progress.setrange(progress, 0, #plan.steps)
     local ok, problem = patchWriter.apply(gma, plan.steps, onStep)
@@ -43,18 +48,37 @@ local function new(gma, options)
       show({ problem })
       return
     end
-    show({ report.done(plan, from, to) })
+    show(doneLines)
+  end
+
+  local function decideWithConflicts(plan)
+    local pools, problem = conflictGroup.create(gma, plan.skipped)
+    if not pools then
+      show({ problem, report.cancelled() })
+    elseif #plan.steps == 0 then
+      show(report.onlyConflicts(plan.conflicts, to, pools))
+    else
+      echo(report.conflicts(plan.conflicts, to))
+      if not ask(report.conflictQuestion(plan, from, to, pools)) then
+        echo({ report.cancelled() })
+        return
+      end
+      applyPlan(plan, {
+        report.done(plan, from, to),
+        report.skipped(plan, pools),
+      })
+    end
   end
 
   local function decide(plan)
     if #plan.conflicts > 0 then
-      show(report.conflicts(plan.conflicts, to))
+      decideWithConflicts(plan)
     elseif #plan.steps == 0 then
       show({ report.nothingToDo(from) })
-    elseif not gma.gui.confirm(title, report.question(plan, from, to)) then
-      echo({ "Cancelled. Nothing was changed." })
+    elseif not ask({ report.question(plan, from, to) }) then
+      echo({ report.cancelled() })
     else
-      applyPlan(plan)
+      applyPlan(plan, { report.done(plan, from, to) })
     end
   end
 

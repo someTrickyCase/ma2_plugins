@@ -13,8 +13,10 @@ it after every probe.
 - **Never commit to `main`.** Work on a branch; changes reach `main`
   only through a pull request. The `pre-commit` CI check must be green.
 - **Test what you ship.** MA2 runs Lua 5.3, so tests run on Lua 5.3.
-- **Safety on stage.** A plugin checks everything first and changes
-  nothing if there is any conflict. It shows a list instead. Never block
+- **Safety on stage.** A plugin checks everything first and never
+  touches a fixture with a conflict. It marks them for the designer
+  instead (a `Conflicts` group + layout) and asks before changing
+  anything else. It reads back every change. Never block
   MA's main loop (no long loops without `gma.sleep`, no waiting
   `os.execute`).
 - **TDD always:** red (failing test), green (smallest code), refactor.
@@ -102,13 +104,18 @@ talks to MA   pure logic, no gma, easy to test
 
 1. `ma/patch-reader` reads all fixtures from EditSetup into plain
    tables.
-2. `core/swap-ids.plan` builds the steps. **Any** final duplicate ID is
-   a conflict, and then there are no steps at all. Steps come in 3
-   phases, so MA never sees a duplicate (MA silently steals IDs):
-   clear `to` IDs that get overwritten, set the new `to` IDs, clear the
-   old `from` IDs.
-3. Conflicts -> show the list, change nothing. No steps -> say so.
-   Otherwise ask OK / Cancel (`core/report` makes all texts).
+2. `core/swap-ids.plan` builds the steps. Fixtures that would end with
+   the same ID are a conflict and are **skipped**: they keep their IDs.
+   A skipped fixture's target ID can block another mover, so planning
+   repeats until no new conflict appears. Steps come in 3 phases, so MA
+   never sees a duplicate (MA silently steals IDs): clear `to` IDs that
+   get overwritten, set the new `to` IDs, clear the old `from` IDs.
+3. Conflicts -> `ma/conflict-group` selects the skipped fixtures,
+   stores Group + Layout `Conflicts` (first free numbers) and checks the
+   group by recalling it and counting `$SELECTEDFIXTURESCOUNT`. Then ask
+   "move the others?". Only conflicts -> show the list, no ID changes.
+   No steps -> say so. Otherwise ask OK / Cancel (`core/report` makes
+   all texts).
 4. `ma/patch-writer` applies the steps one by one: locate the fixture
    fresh by its current ID and check the name, `assign`, `cd /`, read
    back. It stops at the first surprise.

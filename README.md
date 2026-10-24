@@ -85,7 +85,7 @@ just for this time:
 The **System Monitor** then shows the version stamp:
 
 ```
-Channel to Fixture 0.1.0 (e8482d2, 2026-10-24)
+Channel to Fixture 0.2.0 (e8482d2, 2026-10-25)
 ```
 
 `e8482d2` is the Git commit it was built from. If it says
@@ -110,14 +110,27 @@ Then check the version stamp in the System Monitor.
 Run the plugin (`Plugin 1`, or press its pool button). It:
 
 1. reads the whole patch
-2. if two fixtures would end up with the **same ID**: shows a list of
-   these **conflicts** and **changes nothing**. Fix them by hand in the
-   patch, then run the plugin again.
-3. if no fixture has the ID to move: says so and changes nothing
-4. asks: *"Move 230 fixtures from Channel ID to Fixture ID?"*
+2. if no fixture has the ID to move: says so and changes nothing
+3. if two fixtures would end up with the **same ID** (a **conflict**):
+   - stores all conflicting fixtures in a new **Group** and a new
+     **Layout**, both called `Conflicts` (first free numbers)
+   - skips them: they keep their IDs
+   - asks: *"2 conflicts: see Group 12 and Layout 4 "Conflicts". Move
+     the other 228 fixtures from Channel ID to Fixture ID?"*
+   - if **only** conflicting fixtures are left, it shows the list and
+     changes no ID
+4. without conflicts it asks: *"Move 230 fixtures from Channel ID to
+   Fixture ID?"*
 5. on OK: moves the IDs one by one with a progress window, and checks
    every change by reading it back
-6. says *"Done: 230 fixtures moved ..."*
+6. says *"Done: 230 fixtures moved ..."* (plus *"Skipped 2 fixtures:
+   see Group 12 ..."* if there were conflicts)
+
+Fix the conflicts by hand with the help of the `Conflicts` group and
+layout, then run the plugin again. On Cancel, no ID changes, but the
+group and the layout stay. Delete them when you don't need them anymore.
+The plugin uses the **selection** for this, so your current selection
+is cleared. Programmer values stay.
 
 A fixture that already has **both** IDs gets its old target ID
 **overwritten** (Fixture ID 7 + Channel ID 5 becomes Fixture ID 5).
