@@ -1,12 +1,16 @@
-name: pre-commit
+name: ci
 
 on:
   push:
     branches: [main]
   pull_request:
 
+env:
+  TASK_VERSION: 3.54.0
+  GOLANGCI_LINT_VERSION: v2.15.0
+
 jobs:
-  checks:
+  lua:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -36,7 +40,35 @@ jobs:
           rm stylua.zip
           echo "$HOME/bin" >> "$GITHUB_PATH"
 
-      - name: Run pre-commit checks
-        shell: pwsh
+      - uses: arduino/setup-task@v2
+        with:
+          version: ${{ env.TASK_VERSION }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Lua checks
         working-directory: repo
-        run: ./pre-commit.ps1
+        run: task lua
+
+  go:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Install golangci-lint
+        env:
+          INSTALLER: https://golangci-lint.run/install.sh
+        run: |
+          curl -fsSL "$INSTALLER" \
+            | sh -s -- -b "$(go env GOPATH)/bin" "$GOLANGCI_LINT_VERSION"
+
+      - uses: arduino/setup-task@v2
+        with:
+          version: ${{ env.TASK_VERSION }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Go checks
+        run: task go
