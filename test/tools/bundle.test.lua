@@ -165,6 +165,45 @@ function tests.testXmlEscapesSpecialCharacters()
   lu.assertStrContains(xml, 'name="Fix &amp; &quot;Cha&quot; &lt;1&gt;"')
 end
 
+function tests.testCollectReadsPluginSlot()
+  local read = fileSystem({
+    ["plugins/answer/plugin.lua"] = 'return { name = "Answer", slot = 101 }',
+    ["plugins/answer/main.lua"] = "return 1\n",
+  })
+  lu.assertEquals(bundle.collect("answer", read, STAMP).slot, 101)
+end
+
+function tests.testCommandsImportIntoManifestSlot()
+  local parts = partsWith("return 1\n")
+  parts.slot = 101
+  lu.assertEquals(bundle.commands(parts), {
+    import = 'Import "k-answer.xml" At Plugin 101',
+    run = "Plugin 101",
+  })
+end
+
+function tests.testCommandsSlotCanBeOverridden()
+  local parts = partsWith("return 1\n")
+  parts.slot = 101
+  lu.assertEquals(
+    bundle.commands(parts, 5).import,
+    'Import "k-answer.xml" At Plugin 5'
+  )
+end
+
+function tests.testCommandsNeverDeleteAnything()
+  local parts = partsWith("return 1\n")
+  parts.slot = 101
+  local commands = bundle.commands(parts)
+  lu.assertNil(commands.import:lower():find("delete", 1, true))
+end
+
+function tests.testCommandsNeedASlot()
+  lu.assertErrorMsgContains("no plugin slot", function()
+    bundle.commands(partsWith("return 1\n"))
+  end)
+end
+
 function tests.testRealChannelToFixtureBundleMovesIds()
   local parts = bundle.collect("channel-to-fixture", readRealFile, STAMP)
   local fake = fakeGma.new({

@@ -56,6 +56,7 @@ local function collect(pluginName, readFile, stamp)
     name = manifest.name,
     file = manifest.file,
     version = manifest.version,
+    slot = manifest.slot,
     commit = stamp.commit,
     date = stamp.date,
     modules = discover(main, readFile, {}, {}),
@@ -123,9 +124,22 @@ local function xml(parts)
   }, "\n") .. "\n"
 end
 
+local function commands(parts, slot)
+  local target = slot or parts.slot
+  if not target then
+    error("no plugin slot: add slot to plugin.lua or pass one", 2)
+  end
+  local pool = "Plugin " .. target
+  return {
+    import = string.format('Import "%s.xml" At %s', parts.file, pool),
+    run = pool,
+  }
+end
+
 return {
   modulePath = modulePath,
   collect = collect,
   lua = lua,
   xml = xml,
+  commands = commands,
 }

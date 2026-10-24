@@ -1,7 +1,8 @@
 [CmdletBinding(SupportsShouldProcess)]
 param(
   [Parameter(Mandatory)][string]$Plugin,
-  [string]$MaVersion
+  [string]$MaVersion,
+  [ValidateRange(1, 9999)][int]$At
 )
 
 $ErrorActionPreference = 'Stop'
@@ -46,12 +47,15 @@ if ($LASTEXITCODE -ne 0) {
 
 New-Item -ItemType Directory -Force dist -WhatIf:$false | Out-Null
 $date = Get-Date -Format 'yyyy-MM-dd'
-$built = @(lua53 tools/bundle-cli.lua $Plugin dist (Get-Commit) $date)
+$bundleArguments = @($Plugin, 'dist', (Get-Commit), $date)
+if ($At) {
+  $bundleArguments += $At
+}
+$built = @(lua53 tools/bundle-cli.lua @bundleArguments)
 if ($LASTEXITCODE -ne 0) {
   Stop-WithError 'bundling failed'
 }
-$luaFile = $built[0]
-$xmlFile = $built[1]
+$luaFile, $xmlFile, $importCommand, $runCommand = $built
 
 luac53 -p $luaFile
 if ($LASTEXITCODE -ne 0) {
@@ -69,7 +73,17 @@ foreach ($file in $luaFile, $xmlFile) {
   }
 }
 
-$xmlName = Split-Path $xmlFile -Leaf
-Write-Host "Installed to $target" -ForegroundColor Green
-Write-Host 'In MA2 (replace 1 with a free plugin number):'
-Write-Host "  Import `"$xmlName`" At Plugin 1"
+Set-Clipboard -Value $importCommand -WhatIf:$false
+
+if ($WhatIfPreference) {
+  Write-Host 'Dry run: nothing was copied' -ForegroundColor Cyan
+} else {
+  Write-Host "Installed to $target" -ForegroundColor Green
+}
+Write-Host ''
+Write-Host 'Paste into the MA2 command line (already in your clipboard):'
+Write-Host "  $importCommand" -ForegroundColor Yellow
+Write-Host "Updating? Delete the old copy first: Delete $runCommand"
+Write-Host ''
+Write-Host 'Then run it with:'
+Write-Host "  $runCommand" -ForegroundColor Yellow
