@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          path: repo
 
       - uses: leafo/gh-actions-lua@v10
         with:
@@ -36,4 +38,5 @@ jobs:
 
       - name: Run pre-commit checks
         shell: pwsh
+        working-directory: repo
         run: ./pre-commit.ps1
