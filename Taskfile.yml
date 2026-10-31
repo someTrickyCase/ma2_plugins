@@ -68,6 +68,13 @@ tasks:
       - stylua .
       - golangci-lint fmt ./...
 
+  coverage:
+    desc: Go test coverage per package and the total
+    cmds:
+      - mkdir -p dist
+      - go test -coverprofile=dist/coverage.out ./cmd/... ./internal/...
+      - go tool cover -func=dist/coverage.out
+
   build:
     desc: Build ma2kit into dist/
     cmds:

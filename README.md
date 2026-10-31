@@ -1,4 +1,7 @@
-# k_ma2programming
+# ma2_plugins
+
+[![CI](https://github.com/someTrickyCase/ma2_plugins/actions/workflows/ci.yml/badge.svg)](https://github.com/someTrickyCase/ma2_plugins/actions/workflows/ci.yml)
+[![Go coverage](https://img.shields.io/badge/go%20coverage-91.4%25-brightgreen)](https://github.com/someTrickyCase/ma2_plugins)
 
 Lua plugins for grandMA2, written and tested on Windows, then delivered
 to MA2 with one command.
@@ -164,9 +167,51 @@ Not tested yet. Two ways that should work:
 | MA2 still runs the old version            | `Delete Plugin N`, then import again        |
 | Conflict popup                            | Fix the listed IDs in the patch, run again  |
 
+## Architecture
+
+Two tracks live in this repo.
+
+**Lua is what MA2 runs.** It travels to the console inside the show
+file.
+
+```
+plugins/<name>/main.lua   reads the global gma, passes it down
+        |
+lib/ma/swap-flow.lua      the whole run: read -> plan -> ask -> write
+   |            |
+lib/ma/*      lib/core/*
+talks to MA   pure logic, no gma, easy to test
+```
+
+`main.lua` is 3 lines and the only place that reads the global `gma`.
+Everything below gets `gma` as an argument, so the tests pass a fake MA
+instead. `core/` never sees `gma` at all.
+
+**Go is the tooling.** It builds and checks the Lua, and never ships.
+
+```
+cmd/ma2kit/main.go   calls internal/cli.Run and nothing else
+        |
+internal/cli/        one file per command, reads the files
+        |
+internal/rules/      the code rules, one file per language
+```
+
+The code rules are simple on purpose: **only printable ASCII, and no
+comments.** One tool checks them, so the Lua and the Go files are held
+to the same standard.
+
+```
+ma2kit check-rules lib/core/swap-ids.lua
+```
+
 ## For developers
 
 Rules, layout, architecture and conventions: `CLAUDE.md`. Run
 `task check` before every commit. GitHub Actions runs the same
 commands on every pull request. Developers need Go, Task and
 golangci-lint too (versions in `CLAUDE.md`).
+
+`task coverage` prints the Go test coverage per package and the total.
+The badge above shows that total; after changing the code, run the task
+and update the number if it moved.
