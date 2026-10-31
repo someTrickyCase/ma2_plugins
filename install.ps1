@@ -61,7 +61,11 @@ luac53 -p $luaFile
 if ($LASTEXITCODE -ne 0) {
   Stop-WithError "$luaFile is not valid Lua 5.3"
 }
-lua53 dev/lint/check-code-rules.lua $luaFile
+& task build | Out-Null
+if ($LASTEXITCODE -ne 0) {
+  Stop-WithError 'building ma2kit failed'
+}
+& dist\ma2kit.exe check-rules $luaFile
 if ($LASTEXITCODE -ne 0) {
   Stop-WithError "$luaFile breaks the code rules"
 }

@@ -18,7 +18,9 @@ You need this once per computer.
 1. **Lua tools** in `C:\lua-executables`, and that folder in your
    **user** PATH: `lua53`, `luac53`, `luacheck`, `stylua`.
 2. **Git** on PATH.
-3. **PowerShell may run local scripts.** If you ever see
+3. **Go and Task** on PATH. The installer runs the checks with Task, and
+   the code rules checker is a Go program (`ma2kit`).
+4. **PowerShell may run local scripts.** If you ever see
    *"running scripts is disabled on this system"*, run this once:
 
    ```powershell
@@ -33,6 +35,8 @@ lua53 -v          # Lua 5.3.6
 luacheck --version
 stylua --version
 git --version
+go version         # go1.27
+task --version     # 3.54.0
 ```
 
 ## 2. Install a plugin
