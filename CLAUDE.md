@@ -102,6 +102,7 @@ dev/        developer scripts, never shipped to MA
   build/    bundler.lua (logic), bundle-plugin.lua (command line)
 test/       mirrors lib/, plugins/ and dev/ one to one
   support/  fake-gma.lua: a fake MA for ma/ tests
+  session/  end to end: a whole plugin against the fake MA
 cmd/ma2kit/ Go entry point, one line of logic
 internal/   Go packages, each with its _test.go files
   cli/      command dispatch, reads the files the commands work on
@@ -237,6 +238,12 @@ Not enforced, but expected:
 - File `lib/core/x.lua` -> test `test/lib/core/x.test.lua`.
 - A test file returns a table of functions named `test...`.
 - `core/` tests use plain tables. `ma/` tests use a fake `gma`.
+- `test/session/` holds the end to end tests. They run a whole plugin,
+  bundled for real, against the fake MA2, and assert the exact command
+  session MA2 would receive. One wrong command fails the test, and the
+  diff shows which one.
+- `test/support/session.lua` runs a plugin against the fake MA. Use it
+  instead of writing the setup again.
 - Go tests live next to the code: `internal/rules/rules.go` ->
   `internal/rules/rules_test.go`, in the external `rules_test` package.
 - `task coverage` prints the Go coverage per package and the total. The
