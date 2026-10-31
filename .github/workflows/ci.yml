@@ -75,3 +75,6 @@ jobs:
 
       - name: Code rules
         run: task rules
+
+      - name: Go coverage
+        run: task coverage

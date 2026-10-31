@@ -43,12 +43,13 @@ All commands go through Task. `task` alone lists them.
 
 | Command                                | What it does                        |
 | -------------------------------------- | ----------------------------------- |
-| `task check`                           | everything CI checks: rules + Lua + Go |
+| `task check`                           | rules + Lua + Go                    |
 | `task rules`                           | code rules on the Lua and Go files  |
 | `task lua` / `task go`                 | only one half                       |
 | `task fmt`                             | format all Lua and Go files         |
+| `task coverage`                        | Go coverage per package + total     |
 | `task build`                           | build `dist/ma2kit.exe`             |
-| `ma2kit check-rules <file>...`         | report rule violations, exit 1 on any |
+| `ma2kit check-rules <file>...`         | report violations, exit 1 on any    |
 | `.\install.ps1 -Plugin <name>`         | check, bundle to `dist/`, copy      |
 | `.\install.ps1 -Plugin <name> -WhatIf` | same, but copy nothing              |
 | `lua53 test/run.lua <files>`           | run some Lua test files             |
@@ -62,10 +63,10 @@ replaces both.
 
 `.github/workflows/ci.yml` runs on every pull request and every push to
 `main`, on Ubuntu, with two parallel jobs: `lua` runs `task lua`, `go`
-runs `task go` and then `task rules`. The rules job needs Go, because the
-rules checker is a Go program, and it checks the Lua files too. CI only
-calls Task, so the laptop and CI run exactly the same commands. Keep the
-Taskfile working on Windows and Linux.
+runs `task go`, then `task rules` and then `task coverage`. The rules job
+needs Go, because the rules checker is a Go program, and it checks the
+Lua files too. CI only calls Task, so the laptop and CI run exactly the
+same commands. Keep the Taskfile working on Windows and Linux.
 
 ## Go code
 
@@ -117,7 +118,12 @@ dist/       build output. Ignored by Git.
 
 ## Architecture
 
-### Layers
+Two tracks. **Lua** is what MA2 runs. **Go** is the tooling that builds
+and checks the Lua. They never mix: the Go code never ships to MA2, and
+the Lua code never calls the Go tool at runtime. The Go track takes
+over the dev tooling one piece at a time (issue #3, phases 1 to 6).
+
+### Lua: the plugins
 
 ```
 plugins/<name>/main.lua   reads the global gma, passes it down
@@ -133,6 +139,29 @@ talks to MA   pure logic, no gma, easy to test
   `test/support/fake-gma.lua` instead.
 - `core/` never sees `gma`. It works on plain tables like
   `{ name = "Dim 1", layer = "fren", fixId = 1001, chaId = nil }`.
+
+### Go: the tool
+
+```
+cmd/ma2kit/main.go   calls internal/cli.Run and nothing else
+        |
+internal/cli/        one file per command, reads the files
+        |
+internal/rules/      the code rules, one file per language
+```
+
+- `main.go` is a wrapper: it hands the arguments and the streams to
+  `cli.Run` and exits with the code it returns. `cli.Run` returns the
+  exit code instead of calling `os.Exit`, so the tests can call it and
+  look at the result.
+- `internal/cli` owns the IO: it reads the files a command works on and
+  maps the file extension to the language.
+- `internal/rules` is pure: text in, violations out. It never touches
+  the disk, so every rule is tested with a string.
+- The rules are per language, because the comment syntax is: `lua.go`
+  knows `--` and `--[[ ]]`, `golang.go` knows `//` and `/* */`.
+  `rules.go` holds what both share: the ASCII rule, the report format
+  and the sorting.
 
 ### The ID-swap plugins
 
@@ -167,17 +196,18 @@ talks to MA   pure logic, no gma, easy to test
   show file; loose modules would not. It also writes the MA2 XML and a
   stamp (version, commit, date).
 - `install.ps1` runs `pre-commit.ps1`, bundles to `dist/`, checks the
-  bundle again (`luac53 -p` + code rules), copies it to MA's plugins
-  folder and prints the MA2 commands as a numbered list. It never
-  touches the clipboard.
+  bundle again (`luac53 -p` + `ma2kit check-rules`), copies it to MA's
+  plugins folder and prints the MA2 commands as a numbered list. It
+  never touches the clipboard.
 
 ### Decisions
 
 - A fixture with both IDs: the target ID is overwritten.
 - Plugins are developed here and installed by script, never edited in
   MA's own folder.
-- Folder and file names are kebab-case. The tools are Lua (bundler,
-  rules) and PowerShell (scripts).
+- Folder and file names are kebab-case. The tools are Go (the rules,
+  and soon the bundler and the installer), Lua (the plugins, the
+  bundler for now) and PowerShell (the install script, for now).
 
 ## Code conventions
 
@@ -207,3 +237,7 @@ Not enforced, but expected:
 - File `lib/core/x.lua` -> test `test/lib/core/x.test.lua`.
 - A test file returns a table of functions named `test...`.
 - `core/` tests use plain tables. `ma/` tests use a fake `gma`.
+- Go tests live next to the code: `internal/rules/rules.go` ->
+  `internal/rules/rules_test.go`, in the external `rules_test` package.
+- `task coverage` prints the Go coverage per package and the total. The
+  README badge shows that total; refresh the badge when it moves.
