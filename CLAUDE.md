@@ -50,6 +50,7 @@ All commands go through Task. `task` alone lists them.
 | `task coverage`                        | Go coverage per package + total     |
 | `task build`                           | build `dist/ma2kit.exe`             |
 | `ma2kit check-rules <file>...`         | report violations, exit 1 on any    |
+| `ma2kit new <plugin-name>`             | scaffold a new plugin               |
 | `.\install.ps1 -Plugin <name>`         | check, bundle to `dist/`, copy      |
 | `.\install.ps1 -Plugin <name> -WhatIf` | same, but copy nothing              |
 | `lua53 test/run.lua <files>`           | run some Lua test files             |
@@ -75,10 +76,10 @@ same commands. Keep the Taskfile working on Windows and Linux.
 - golangci-lint runs **every** linter. Only these are off, each for a
   reason: `wsl`, `gomodguard`, `exhaustruct` (deprecated, their `_v2` /
   `_v5` successors are on), revive `exported` and `package-comments`
-  (they demand doc comments; our rule is no comments). One rule is
-  excluded for one file: gosec `G304` in `internal/cli/checkrules.go`,
-  because reading a file the user named on the command line is the whole
-  job of `ma2kit check-rules`.
+  (they demand doc comments; our rule is no comments). Nothing is
+  excluded per file: gosec `G304` is on everywhere, and the code reads
+  files through `internal/readfile`, which cannot leave the folder it
+  was given.
 - `depguard` allows only the Go standard library and this module. A new
   dependency must be added to `.golangci.yml` on purpose.
 - Tests follow Go's convention: `x_test.go` next to `x.go`, in the
@@ -88,6 +89,9 @@ same commands. Keep the Taskfile working on Windows and Linux.
 - The code rules live in `internal/rules`: one file per language for the
   comment syntax (`lua.go`, `golang.go`), `rules.go` for the shared part.
   The language comes from the file extension.
+- `internal/scaffold` builds a new plugin: the manifest, the entry
+  point and the test. The Lua it writes is a template in the Go source,
+  so you can read it there.
 
 ## Layout
 
@@ -107,6 +111,8 @@ cmd/ma2kit/ Go entry point, one line of logic
 internal/   Go packages, each with its _test.go files
   cli/      command dispatch, reads the files the commands work on
   rules/    the code rules: ASCII only, no comments
+  scaffold/ builds a new plugin from a template
+  readfile/ reads a file by name, without leaving its folder
   buildinfo/ version and commit stamp
 .github/    CI workflow
 Taskfile.yml    the one entry point for every check and build

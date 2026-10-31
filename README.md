@@ -1,7 +1,7 @@
 # ma2_plugins
 
 [![CI](https://github.com/someTrickyCase/ma2_plugins/actions/workflows/ci.yml/badge.svg)](https://github.com/someTrickyCase/ma2_plugins/actions/workflows/ci.yml)
-[![Go coverage](https://img.shields.io/badge/go%20coverage-91.4%25-brightgreen)](https://github.com/someTrickyCase/ma2_plugins)
+[![Go coverage](https://img.shields.io/badge/go%20coverage-91.5%25-brightgreen)](https://github.com/someTrickyCase/ma2_plugins)
 
 Lua plugins for grandMA2, written and tested on Windows, then delivered
 to MA2 with one command.
@@ -199,6 +199,8 @@ cmd/ma2kit/main.go   calls internal/cli.Run and nothing else
 internal/cli/        one file per command, reads the files
         |
 internal/rules/      the code rules, one file per language
+internal/scaffold/   builds a new plugin from a template
+internal/readfile/   reads a file by name, without leaving its folder
 ```
 
 The code rules are simple on purpose: **only printable ASCII, and no
@@ -215,6 +217,10 @@ Rules, layout, architecture and conventions: `CLAUDE.md`. Run
 `task check` before every commit. GitHub Actions runs the same
 commands on every pull request. Developers need Go, Task and
 golangci-lint too (versions in `CLAUDE.md`).
+
+Start a new plugin with `ma2kit new <plugin-name>`. It writes the
+manifest, the entry point and the test, picks a free pool slot, and
+the result already passes every check.
 
 `task coverage` prints the Go test coverage per package and the total.
 The badge above shows that total; after changing the code, run the task
