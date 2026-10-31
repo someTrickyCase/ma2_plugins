@@ -31,11 +31,6 @@ linters:
     paths:
       - scratch$
       - dist$
-    rules:
-      - path: internal/cli/checkrules.go
-        linters:
-          - gosec
-        text: "G304"
 
 formatters:
   enable:

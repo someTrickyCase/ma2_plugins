@@ -15,7 +15,8 @@ const (
 
 commands:
   version
-  check-rules <file>...`
+  check-rules <file>...
+  new <plugin-name>`
 )
 
 func Run(args []string, stdout, stderr io.Writer) int {
@@ -30,6 +31,8 @@ func Run(args []string, stdout, stderr io.Writer) int {
 		return ExitOK
 	case "check-rules":
 		return runCheckRules(args[1:], stdout, stderr)
+	case "new":
+		return runNew(args[1:], stdout, stderr)
 	default:
 		return showUsage(stderr, fmt.Sprintf("unknown command %q", args[0]))
 	}

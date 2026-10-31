@@ -3,10 +3,10 @@ package cli
 import (
 	"fmt"
 	"io"
-	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/someTrickyCase/ma2_plugins/internal/readfile"
 	"github.com/someTrickyCase/ma2_plugins/internal/rules"
 )
 
@@ -41,7 +41,7 @@ func readRuleFiles(paths []string) ([]rules.File, string) {
 			return nil, fmt.Sprintf("unknown file type %q", path)
 		}
 
-		text, err := os.ReadFile(path)
+		text, err := readfile.Read(path)
 		if err != nil {
 			return nil, fmt.Sprintf("cannot read %q: %v", path, err)
 		}
