@@ -27,6 +27,15 @@ linters:
         - name: add-constant
           arguments:
             - allowInts: "0,1"
+  exclusions:
+    paths:
+      - scratch$
+      - dist$
+    rules:
+      - path: internal/cli/checkrules.go
+        linters:
+          - gosec
+        text: "G304"
 
 formatters:
   enable:

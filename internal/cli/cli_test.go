@@ -8,7 +8,7 @@ import (
 	"github.com/someTrickyCase/ma2_plugins/internal/cli"
 )
 
-const usageLine = "usage: ma2kit version"
+const usageLine = "usage: ma2kit <command> [args]"
 
 type result struct {
 	code   int
@@ -37,6 +37,14 @@ func expectStdoutPrefix(t *testing.T, got result, want string) {
 
 	if !strings.HasPrefix(got.stdout, want) {
 		t.Errorf("stdout = %q, want prefix %q", got.stdout, want)
+	}
+}
+
+func expectStdoutContains(t *testing.T, got result, want string) {
+	t.Helper()
+
+	if !strings.Contains(got.stdout, want) {
+		t.Errorf("stdout = %q, want it to contain %q", got.stdout, want)
 	}
 }
 

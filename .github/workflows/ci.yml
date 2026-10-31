@@ -72,3 +72,6 @@ jobs:
 
       - name: Go checks
         run: task go
+
+      - name: Code rules
+        run: task rules
