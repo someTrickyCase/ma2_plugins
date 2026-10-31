@@ -1,6 +1,6 @@
 local lu = require("luaunit")
 local bundle = require("dev.build.bundler")
-local fakeGma = require("test.support.fake-gma")
+local session = require("test.support.session")
 
 local STAMP = { commit = "abc1234", date = "2026-10-24" }
 
@@ -32,16 +32,6 @@ local function run(parts, environment, ...)
   setmetatable(environment, { __index = _G })
   local chunk = assert(load(bundle.lua(parts), "=bundle", "t", environment))
   return chunk(...)
-end
-
-local function readRealFile(path)
-  local file = io.open(path, "rb")
-  if not file then
-    return nil
-  end
-  local text = file:read("a")
-  file:close()
-  return text
 end
 
 local tests = {}
@@ -206,20 +196,11 @@ function tests.testInstructionsNeedASlot()
 end
 
 function tests.testRealChannelToFixtureBundleMovesIds()
-  local parts = bundle.collect("channel-to-fixture", readRealFile, STAMP)
-  local fake = fakeGma.new({
+  local fake = session.run("channel-to-fixture", {
     layers = {
       { name = "fren", fixtures = { { name = "Dim 1", chaId = "801" } } },
     },
   })
-  local environment = {
-    gma = fake.gma,
-    require = function(name)
-      error("real require used for " .. name)
-    end,
-  }
-  local start = run(parts, environment, "plugin_1", "Channel to Fixture")
-  start()
   lu.assertEquals(fake.propsAt(1, 1).FixId, "801")
   lu.assertEquals(fake.propsAt(1, 1).ChaId, "-")
 end
