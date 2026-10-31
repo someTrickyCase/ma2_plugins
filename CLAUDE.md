@@ -43,10 +43,12 @@ All commands go through Task. `task` alone lists them.
 
 | Command                                | What it does                        |
 | -------------------------------------- | ----------------------------------- |
-| `task check`                           | everything CI checks: Lua + Go      |
+| `task check`                           | everything CI checks: rules + Lua + Go |
+| `task rules`                           | code rules on the Lua and Go files  |
 | `task lua` / `task go`                 | only one half                       |
 | `task fmt`                             | format all Lua and Go files         |
 | `task build`                           | build `dist/ma2kit.exe`             |
+| `ma2kit check-rules <file>...`         | report rule violations, exit 1 on any |
 | `.\install.ps1 -Plugin <name>`         | check, bundle to `dist/`, copy      |
 | `.\install.ps1 -Plugin <name> -WhatIf` | same, but copy nothing              |
 | `lua53 test/run.lua <files>`           | run some Lua test files             |
@@ -60,8 +62,10 @@ replaces both.
 
 `.github/workflows/ci.yml` runs on every pull request and every push to
 `main`, on Ubuntu, with two parallel jobs: `lua` runs `task lua`, `go`
-runs `task go`. CI only calls Task, so the laptop and CI run exactly the
-same commands. Keep the Taskfile working on Windows and Linux.
+runs `task go` and then `task rules`. The rules job needs Go, because the
+rules checker is a Go program, and it checks the Lua files too. CI only
+calls Task, so the laptop and CI run exactly the same commands. Keep the
+Taskfile working on Windows and Linux.
 
 ## Go code
 
@@ -70,13 +74,19 @@ same commands. Keep the Taskfile working on Windows and Linux.
 - golangci-lint runs **every** linter. Only these are off, each for a
   reason: `wsl`, `gomodguard`, `exhaustruct` (deprecated, their `_v2` /
   `_v5` successors are on), revive `exported` and `package-comments`
-  (they demand doc comments; our rule is no comments).
+  (they demand doc comments; our rule is no comments). One rule is
+  excluded for one file: gosec `G304` in `internal/cli/checkrules.go`,
+  because reading a file the user named on the command line is the whole
+  job of `ma2kit check-rules`.
 - `depguard` allows only the Go standard library and this module. A new
   dependency must be added to `.golangci.yml` on purpose.
 - Tests follow Go's convention: `x_test.go` next to `x.go`, in the
   external `x_test` package. Table tests for many cases of one function,
   small `expect...` helpers instead of repeated checks.
 - No comments, as in Lua. Code explains itself through names.
+- The code rules live in `internal/rules`: one file per language for the
+  comment syntax (`lua.go`, `golang.go`), `rules.go` for the shared part.
+  The language comes from the file extension.
 
 ## Layout
 
@@ -89,11 +99,13 @@ plugins/    one folder per plugin (kebab-case)
   <name>/main.lua     entry, returns start[, cleanup]
 dev/        developer scripts, never shipped to MA
   build/    bundler.lua (logic), bundle-plugin.lua (command line)
-  lint/     code-rules.lua (logic), check-code-rules.lua (command line)
 test/       mirrors lib/, plugins/ and dev/ one to one
   support/  fake-gma.lua: a fake MA for ma/ tests
 cmd/ma2kit/ Go entry point, one line of logic
 internal/   Go packages, each with its _test.go files
+  cli/      command dispatch, reads the files the commands work on
+  rules/    the code rules: ASCII only, no comments
+  buildinfo/ version and commit stamp
 .github/    CI workflow
 Taskfile.yml    the one entry point for every check and build
 pre-commit.ps1  wrapper: task check
@@ -174,9 +186,11 @@ Enforced by tools:
 - Max line width 80. Lua 5.3 syntax only (StyLua `syntax = "Lua53"`,
   luacheck `std = "lua53"`).
 - Only printable ASCII and LF line endings. Build non-ASCII characters
-  with `string.char(...)` or `utf8.char(...)`.
-- No comments in code files (`dev/lint/code-rules.lua`). No inline
-  luacheck config (`inline = false`).
+  with `string.char(...)` or `utf8.char(...)`. In Go, a tab is allowed:
+  `gofumpt` indents with tabs, so the rule keeps tabs and rejects every
+  other control character.
+- No comments in code files (`ma2kit check-rules`, `internal/rules`). No
+  inline luacheck config (`inline = false`).
 - Cyclomatic complexity at most 10 per function.
 - Never make a tool less strict. If a rule blocks you, change the code.
 

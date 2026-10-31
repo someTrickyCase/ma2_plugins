@@ -8,9 +8,14 @@ import (
 )
 
 const (
-	ExitOK    = 0
-	ExitUsage = 2
-	usage     = "usage: ma2kit version"
+	ExitOK         = 0
+	ExitViolations = 1
+	ExitUsage      = 2
+	usage          = `usage: ma2kit <command> [args]
+
+commands:
+  version
+  check-rules <file>...`
 )
 
 func Run(args []string, stdout, stderr io.Writer) int {
@@ -23,6 +28,8 @@ func Run(args []string, stdout, stderr io.Writer) int {
 		_, _ = fmt.Fprintln(stdout, "ma2kit", buildinfo.Current())
 
 		return ExitOK
+	case "check-rules":
+		return runCheckRules(args[1:], stdout, stderr)
 	default:
 		return showUsage(stderr, fmt.Sprintf("unknown command %q", args[0]))
 	}

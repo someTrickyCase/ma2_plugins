@@ -1,6 +1,5 @@
 local lu = require("luaunit")
 local bundle = require("dev.build.bundler")
-local checkRules = require("dev.lint.code-rules")
 local fakeGma = require("test.support.fake-gma")
 
 local STAMP = { commit = "abc1234", date = "2026-10-24" }
@@ -142,13 +141,6 @@ function tests.testBundleEchoesVersionStampOnLoad()
   }
   run(partsWith("return 1\n"), environment)
   lu.assertEquals(echoes, { "Answer 1.2.3 (abc1234, 2026-10-24)" })
-end
-
-function tests.testBundleFollowsOurOwnRules()
-  local parts = partsWith("return 1\n", {
-    { name = "core.b", text = "return 2\n" },
-  })
-  lu.assertEquals(checkRules.findViolations(bundle.lua(parts)), {})
 end
 
 function tests.testXmlPointsToTheLuaFile()
