@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	manifestName = "plugin.lua"
+	manifestName = "plugin.json"
 	pluginName   = "my-plugin"
 	pluginTitle  = "My Plugin"
 	pluginDir    = "plugins"
@@ -45,8 +45,8 @@ func writeManifest(t *testing.T, root string, name string, slot int) {
 	}
 
 	path := filepath.Join(folder, manifestName)
-	text := "return {\n  name = \"x\",\n  slot = " +
-		strconv.Itoa(slot) + ",\n}\n"
+	text := "{\n  \"name\": \"x\",\n  \"file\": \"k-" + name + "\",\n" +
+		"  \"version\": \"0.1.0\",\n  \"slot\": " + strconv.Itoa(slot) + "\n}\n"
 
 	err = os.WriteFile(path, []byte(text), fileMode)
 	if err != nil {
@@ -103,15 +103,15 @@ func TestNewWritesTheManifest(t *testing.T) {
 	}
 
 	path := filepath.Join(root, pluginDir, pluginName, manifestName)
-	want := "return {\n" +
-		"  name = \"My Plugin\",\n" +
-		"  file = \"k-my-plugin\",\n" +
-		"  version = \"0.1.0\",\n" +
-		"  slot = 101,\n" +
+	want := "{\n" +
+		"  \"name\": \"My Plugin\",\n" +
+		"  \"file\": \"k-my-plugin\",\n" +
+		"  \"version\": \"0.1.0\",\n" +
+		"  \"slot\": 101\n" +
 		"}\n"
 
 	if got := readFile(t, path); got != want {
-		t.Errorf("plugin.lua =\n%s\nwant\n%s", got, want)
+		t.Errorf("plugin.json =\n%s\nwant\n%s", got, want)
 	}
 }
 

@@ -49,8 +49,11 @@ All commands go through Task. `task` alone lists them.
 | `task fmt`                             | format all Lua and Go files         |
 | `task coverage`                        | Go coverage per package + total     |
 | `task build`                           | build `dist/ma2kit.exe`             |
+| `task bundle`                          | build every plugin into `dist/`     |
+| `task golden`                          | rebuild the committed test bundles  |
 | `ma2kit check-rules <file>...`         | report violations, exit 1 on any    |
 | `ma2kit new <plugin-name>`             | scaffold a new plugin               |
+| `ma2kit bundle <name> --out <dir>`     | build one plugin, print the commands |
 | `.\install.ps1 -Plugin <name>`         | check, bundle to `dist/`, copy      |
 | `.\install.ps1 -Plugin <name> -WhatIf` | same, but copy nothing              |
 | `lua53 test/run.lua <files>`           | run some Lua test files             |
@@ -100,17 +103,18 @@ lib/        shared modules, required as "core.x" or "ma.x"
   core/     pure logic, no gma
   ma/       thin adapters around the gma API
 plugins/    one folder per plugin (kebab-case)
-  <name>/plugin.lua   manifest: name, file (k- prefix), version, slot
+  <name>/plugin.json  manifest: name, file (k- prefix), version, slot
   <name>/main.lua     entry, returns start[, cleanup]
-dev/        developer scripts, never shipped to MA
-  build/    bundler.lua (logic), bundle-plugin.lua (command line)
-test/       mirrors lib/, plugins/ and dev/ one to one
+test/       mirrors lib/ and plugins/ one to one
   support/  fake-gma.lua: a fake MA for ma/ tests
   session/  end to end: a whole plugin against the fake MA
+  bundles/  the built plugins, the golden files of the Go tests
 cmd/ma2kit/ Go entry point, one line of logic
 internal/   Go packages, each with its _test.go files
   cli/      command dispatch, reads the files the commands work on
   rules/    the code rules: ASCII only, no comments
+  bundle/   the bundler: one plugin file and one XML for MA2
+  manifest/ the plugin manifest, read and written
   scaffold/ builds a new plugin from a template
   readfile/ reads a file by name, without leaving its folder
   buildinfo/ version and commit stamp
@@ -155,6 +159,8 @@ cmd/ma2kit/main.go   calls internal/cli.Run and nothing else
 internal/cli/        one file per command, reads the files
         |
 internal/rules/      the code rules, one file per language
+internal/bundle/     the bundler: the plugin file and the MA2 XML
+internal/manifest/   the plugin manifest, read and written
 ```
 
 - `main.go` is a wrapper: it hands the arguments and the streams to
@@ -169,6 +175,12 @@ internal/rules/      the code rules, one file per language
   knows `--` and `--[[ ]]`, `golang.go` knows `//` and `/* */`.
   `rules.go` holds what both share: the ASCII rule, the report format
   and the sorting.
+- `internal/bundle` is pure too: paths and text in, text out. The
+  bundler follows the `require("...")` calls of the entry point into
+  `lib/`, packs everything into one Lua file with its own small
+  `require`, and writes the MA2 XML next to it.
+- `internal/manifest` holds the plugin manifest. It is JSON, because Go
+  cannot run a Lua table. `ma2kit new` writes it, the bundler reads it.
 
 ### The ID-swap plugins
 
@@ -197,11 +209,18 @@ internal/rules/      the code rules, one file per language
 
 ### Build and install
 
-- `dev/build/bundler.lua` starts at `plugins/<name>/main.lua`, follows
-  every `require("...")` into `lib/`, and packs everything into **one**
-  Lua file with its own small `require`. One file travels inside the
-  show file; loose modules would not. It also writes the MA2 XML and a
-  stamp (version, commit, date).
+- `ma2kit bundle` starts at `plugins/<name>/main.lua`, follows every
+  `require("...")` into `lib/`, and packs everything into **one** Lua
+  file with its own small `require`. One file travels inside the show
+  file; loose modules would not. It also writes the MA2 XML and a stamp
+  (version, commit, date).
+- The built files live in `test/bundles/` as the **golden files**: the
+  Go test compares its own output with them, byte for byte. They were
+  made by the Lua bundler before it was replaced by the Go one, so they
+  are the proof that the two produce the same file. `task golden`
+  rebuilds them; only run it when the change is wanted.
+- The session tests load `test/bundles/<file>.lua`, so they run the
+  real artifact that MA2 gets, not a rebuild in memory.
 - `install.ps1` runs `pre-commit.ps1`, bundles to `dist/`, checks the
   bundle again (`luac53 -p` + `ma2kit check-rules`), copies it to MA's
   plugins folder and prints the MA2 commands as a numbered list. It
@@ -213,8 +232,8 @@ internal/rules/      the code rules, one file per language
 - Plugins are developed here and installed by script, never edited in
   MA's own folder.
 - Folder and file names are kebab-case. The tools are Go (the rules,
-  and soon the bundler and the installer), Lua (the plugins, the
-  bundler for now) and PowerShell (the install script, for now).
+  the bundler, and soon the installer), Lua (the plugins) and
+  PowerShell (the install script, for now).
 
 ## Code conventions
 
@@ -230,6 +249,10 @@ Enforced by tools:
   inline luacheck config (`inline = false`).
 - Cyclomatic complexity at most 10 per function.
 - Never make a tool less strict. If a rule blocks you, change the code.
+  The MA2 XML needs `http://` namespace URLs and revive's
+  `unsecure-url-scheme` does not like them, so they are built from
+  `httpScheme + "//..."` in `internal/bundle/xml.go` instead of turning
+  the rule off.
 
 Not enforced, but expected:
 
@@ -244,10 +267,15 @@ Not enforced, but expected:
 - File `lib/core/x.lua` -> test `test/lib/core/x.test.lua`.
 - A test file returns a table of functions named `test...`.
 - `core/` tests use plain tables. `ma/` tests use a fake `gma`.
-- `test/session/` holds the end to end tests. They run a whole plugin,
-  bundled for real, against the fake MA2, and assert the exact command
-  session MA2 would receive. One wrong command fails the test, and the
-  diff shows which one.
+- `test/session/` holds the end to end tests. They load the built
+  plugin from `test/bundles/` and run it against the fake MA2, then
+  assert the exact command session MA2 would receive. One wrong
+  command fails the test, and the diff shows which one.
+- `test/bundles/` holds the built plugins. `internal/bundle` compares
+  its own output with those files, byte for byte. They were made by
+  the old Lua bundler, so they are the proof that the Go one builds the
+  same file. Rebuild them with `task golden`, and only when the change
+  is wanted.
 - `test/support/session.lua` runs a plugin against the fake MA. Use it
   instead of writing the setup again.
 - Go tests live next to the code: `internal/rules/rules.go` ->

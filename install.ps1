@@ -36,7 +36,7 @@ function Get-Commit {
   $commit
 }
 
-if (-not (Test-Path "plugins/$Plugin/plugin.lua")) {
+if (-not (Test-Path "plugins/$Plugin/plugin.json")) {
   Stop-WithError "unknown plugin '$Plugin'"
 }
 
@@ -45,13 +45,19 @@ if ($LASTEXITCODE -ne 0) {
   Stop-WithError 'checks are red, run .\pre-commit.ps1 to see why'
 }
 
+& task build | Out-Null
+if ($LASTEXITCODE -ne 0) {
+  Stop-WithError 'building ma2kit failed'
+}
+
 New-Item -ItemType Directory -Force dist -WhatIf:$false | Out-Null
 $date = Get-Date -Format 'yyyy-MM-dd'
-$bundleArguments = @($Plugin, 'dist', (Get-Commit), $date)
+$bundleArguments = @('bundle', $Plugin, '--out', 'dist',
+  '--commit', (Get-Commit), '--date', $date)
 if ($At) {
-  $bundleArguments += $At
+  $bundleArguments += @('--at', $At)
 }
-$built = @(lua53 dev/build/bundle-plugin.lua @bundleArguments)
+$built = @(dist\ma2kit.exe @bundleArguments)
 if ($LASTEXITCODE -ne 0) {
   Stop-WithError 'bundling failed'
 }
@@ -60,10 +66,6 @@ $luaFile, $xmlFile, $instructions = $built
 luac53 -p $luaFile
 if ($LASTEXITCODE -ne 0) {
   Stop-WithError "$luaFile is not valid Lua 5.3"
-}
-& task build | Out-Null
-if ($LASTEXITCODE -ne 0) {
-  Stop-WithError 'building ma2kit failed'
 }
 & dist\ma2kit.exe check-rules $luaFile
 if ($LASTEXITCODE -ne 0) {

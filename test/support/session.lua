@@ -1,20 +1,8 @@
-local bundle = require("dev.build.bundler")
 local fakeGma = require("test.support.fake-gma")
 
-local STAMP = { commit = "abc1234", date = "2026-10-24" }
+local BUNDLE_FOLDER = "test/bundles"
 
-local function readRealFile(path)
-  local file = io.open(path, "rb")
-  if not file then
-    return nil
-  end
-  local text = file:read("a")
-  file:close()
-  return text
-end
-
-local function run(pluginName, options)
-  local parts = bundle.collect(pluginName, readRealFile, STAMP)
+local function run(bundleFile, options)
   local fake = fakeGma.new(options)
   local environment = {
     gma = fake.gma,
@@ -23,8 +11,9 @@ local function run(pluginName, options)
     end,
   }
   setmetatable(environment, { __index = _G })
-  local chunk = assert(load(bundle.lua(parts), "=bundle", "t", environment))
-  local start = chunk("plugin_1", parts.name)
+  local path = BUNDLE_FOLDER .. "/" .. bundleFile
+  local chunk = assert(loadfile(path, "t", environment))
+  local start = chunk("plugin_1", "Plugin")
   start()
   return fake
 end

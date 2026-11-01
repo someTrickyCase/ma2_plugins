@@ -3,9 +3,12 @@ version: "3"
 shopt: [globstar]
 
 vars:
-  LUA_FILES: lib/**/*.lua plugins/**/*.lua test/**/*.lua dev/**/*.lua
+  LUA_FILES: lib/**/*.lua plugins/**/*.lua test/**/*.lua
   LUA_TESTS: test/**/*.test.lua
   GO_FILES: cmd/**/*.go internal/**/*.go
+  PLUGINS: channel-to-fixture fixture-to-channel
+  GOLDEN_COMMIT: abc1234
+  GOLDEN_DATE: "2026-10-24"
 
 tasks:
   default:
@@ -79,3 +82,20 @@ tasks:
     desc: Build ma2kit into dist/
     cmds:
       - go build -o dist/ma2kit{{exeExt}} ./cmd/ma2kit
+
+  bundle:
+    desc: Build every plugin into dist/
+    cmds:
+      - |
+        for plugin in {{.PLUGINS}}; do
+          go run -buildvcs=true ./cmd/ma2kit bundle $plugin --out dist
+        done
+
+  golden:
+    desc: Rebuild the committed bundles in test/bundles
+    cmds:
+      - |
+        for plugin in {{.PLUGINS}}; do
+          go run -buildvcs=true ./cmd/ma2kit bundle $plugin --out test/bundles \
+            --commit {{.GOLDEN_COMMIT}} --date {{.GOLDEN_DATE}}
+        done
