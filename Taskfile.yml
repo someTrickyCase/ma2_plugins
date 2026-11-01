@@ -1,0 +1,73 @@
+version: "3"
+
+shopt: [globstar]
+
+vars:
+  LUA_FILES: lib/**/*.lua plugins/**/*.lua test/**/*.lua dev/**/*.lua
+  LUA_TESTS: test/**/*.test.lua
+
+tasks:
+  default:
+    cmds:
+      - task --list
+
+  check:
+    desc: Everything CI checks, in the same order
+    cmds:
+      - task: lua
+      - task: go
+
+  lua:
+    desc: Lua format check, lint, code rules and tests
+    cmds:
+      - task: lua:format
+      - task: lua:lint
+      - task: lua:rules
+      - task: lua:test
+
+  lua:format:
+    desc: StyLua format check
+    cmds:
+      - stylua --check .
+
+  lua:lint:
+    desc: luacheck
+    cmds:
+      - luacheck .
+
+  lua:rules:
+    desc: ASCII only, no comments
+    cmds:
+      - lua53 dev/lint/check-code-rules.lua {{.LUA_FILES}}
+
+  lua:test:
+    desc: LuaUnit tests on Lua 5.3
+    cmds:
+      - lua53 test/run.lua {{.LUA_TESTS}}
+
+  go:
+    desc: Go lint and tests
+    cmds:
+      - task: go:lint
+      - task: go:test
+
+  go:lint:
+    desc: golangci-lint with every linter on
+    cmds:
+      - golangci-lint run ./...
+
+  go:test:
+    desc: Go tests
+    cmds:
+      - go test ./...
+
+  fmt:
+    desc: Format all Lua and Go files
+    cmds:
+      - stylua .
+      - golangci-lint fmt ./...
+
+  build:
+    desc: Build ma2kit into dist/
+    cmds:
+      - go build -o dist/ma2kit{{exeExt}} ./cmd/ma2kit

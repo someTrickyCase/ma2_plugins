@@ -167,5 +167,6 @@ Not tested yet. Two ways that should work:
 ## For developers
 
 Rules, layout, architecture and conventions: `CLAUDE.md`. Run
-`.\pre-commit.ps1` before every commit. GitHub Actions runs the same
-script on every pull request.
+`task check` before every commit. GitHub Actions runs the same
+commands on every pull request. Developers need Go, Task and
+golangci-lint too (versions in `CLAUDE.md`).

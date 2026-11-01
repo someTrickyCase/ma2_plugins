@@ -1,0 +1,34 @@
+version: "2"
+
+linters:
+  default: all
+  disable:
+    - exhaustruct
+    - gomodguard
+    - wsl
+  settings:
+    lll:
+      line-length: 80
+      tab-width: 4
+    depguard:
+      rules:
+        main:
+          list-mode: strict
+          allow:
+            - $gostd
+            - github.com/someTrickyCase/ma2_plugins
+    revive:
+      enable-all-rules: true
+      rules:
+        - name: package-comments
+          disabled: true
+        - name: exported
+          disabled: true
+        - name: add-constant
+          arguments:
+            - allowInts: "0,1"
+
+formatters:
+  enable:
+    - gofumpt
+    - goimports
