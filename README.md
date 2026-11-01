@@ -1,7 +1,7 @@
 # ma2_plugins
 
 [![CI](https://github.com/someTrickyCase/ma2_plugins/actions/workflows/ci.yml/badge.svg)](https://github.com/someTrickyCase/ma2_plugins/actions/workflows/ci.yml)
-[![Go coverage](https://img.shields.io/badge/go%20coverage-91.5%25-brightgreen)](https://github.com/someTrickyCase/ma2_plugins)
+[![Go coverage](https://img.shields.io/badge/go%20coverage-92.5%25-brightgreen)](https://github.com/someTrickyCase/ma2_plugins)
 
 Lua plugins for grandMA2, written and tested on Windows, then delivered
 to MA2 with one command.
@@ -81,7 +81,7 @@ MA2 commands, paste them in this order:
      Plugin 101
 ```
 
-Each plugin has its own pool slot in its `plugin.lua` (`slot = 101`).
+Each plugin has its own pool slot in its `plugin.json` (`"slot": 101`).
 Is that slot taken in your show? Change it there, or pick another one
 just for this time:
 
@@ -199,6 +199,8 @@ cmd/ma2kit/main.go   calls internal/cli.Run and nothing else
 internal/cli/        one file per command, reads the files
         |
 internal/rules/      the code rules, one file per language
+internal/bundle/     the bundler: the plugin file and the MA2 XML
+internal/manifest/   the plugin manifest, read and written
 internal/scaffold/   builds a new plugin from a template
 internal/readfile/   reads a file by name, without leaving its folder
 ```
@@ -211,6 +213,13 @@ to the same standard.
 ma2kit check-rules lib/core/swap-ids.lua
 ```
 
+The bundler packs a plugin and its modules into **one** Lua file, writes
+the MA2 XML next to it and prints the commands to load it into MA2.
+
+```
+ma2kit bundle channel-to-fixture --out dist
+```
+
 ## For developers
 
 Rules, layout, architecture and conventions: `CLAUDE.md`. Run
@@ -221,6 +230,11 @@ golangci-lint too (versions in `CLAUDE.md`).
 Start a new plugin with `ma2kit new <plugin-name>`. It writes the
 manifest, the entry point and the test, picks a free pool slot, and
 the result already passes every check.
+
+The built plugins live in `test/bundles/`. The Go test compares its own
+output with those files, byte for byte, so they must be rebuilt after a
+change to a plugin: `task golden`. The end-to-end tests load the very
+same files, so they run what MA2 gets.
 
 `task coverage` prints the Go test coverage per package and the total.
 The badge above shows that total; after changing the code, run the task

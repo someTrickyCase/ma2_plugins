@@ -12,7 +12,7 @@ end
 local tests = {}
 
 function tests.testReadsThePatchSetsTheIdAndClearsTheOldOne()
-  local fake = session.run("fixture-to-channel", oneFixture())
+  local fake = session.run("k-fixture-to-channel.lua", oneFixture())
 
   lu.assertEquals(fake.commands, {
     'cd /; cd "EditSetup"; cd "Layers"',
@@ -25,7 +25,7 @@ function tests.testReadsThePatchSetsTheIdAndClearsTheOldOne()
 end
 
 function tests.testAsksBeforeItMovesAnything()
-  local fake = session.run("fixture-to-channel", oneFixture())
+  local fake = session.run("k-fixture-to-channel.lua", oneFixture())
 
   lu.assertEquals(fake.questions, {
     {

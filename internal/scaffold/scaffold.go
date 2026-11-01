@@ -6,17 +6,15 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 
-	"github.com/someTrickyCase/ma2_plugins/internal/readfile"
+	"github.com/someTrickyCase/ma2_plugins/internal/manifest"
 )
 
 const (
 	firstSlot      = 101
 	pluginFolder   = "plugins"
 	testFolder     = "test/plugins"
-	manifestFile   = "plugin.lua"
 	entryFile      = "main.lua"
 	testFileName   = "main.test.lua"
 	versionText    = "0.1.0"
@@ -30,16 +28,7 @@ var (
 	errExists  = errors.New("plugin already exists")
 
 	namePattern = regexp.MustCompile(`^[a-z][a-z0-9]*(-[a-z0-9]+)*$`)
-	slotPattern = regexp.MustCompile(`slot\s*=\s*([0-9]+)`)
 )
-
-const manifestTemplate = `return {
-  name = "%s",
-  file = "%s",
-  version = "%s",
-  slot = %d,
-}
-`
 
 const entryPointTemplate = `local TITLE = "%s"
 local VERSION = "%s"
@@ -104,10 +93,16 @@ func New(root string, name string) (Result, error) {
 	}
 
 	title := titleFor(name)
+
+	manifestText, err := manifestText(name, title, slot)
+	if err != nil {
+		return Result{}, err
+	}
+
 	files := []content{
 		{
-			path: filepath.Join(folder, manifestFile),
-			text: manifest(name, title, slot),
+			path: manifest.Path(root, name),
+			text: manifestText,
 		},
 		{
 			path: filepath.Join(folder, entryFile),
@@ -166,57 +161,18 @@ func freeSlot(root string) (int, error) {
 }
 
 func usedSlots(root string) (map[int]bool, error) {
-	texts, err := manifestTexts(root)
+	manifests, err := manifest.ReadAll(root)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot read the manifests: %w", err)
 	}
 
 	used := map[int]bool{}
 
-	for _, text := range texts {
-		slot, found := slotOf(text)
-		if found {
-			used[slot] = true
-		}
+	for _, one := range manifests {
+		used[one.Slot] = true
 	}
 
 	return used, nil
-}
-
-func manifestTexts(root string) ([]string, error) {
-	pattern := filepath.Join(root, pluginFolder, "*", manifestFile)
-
-	paths, err := filepath.Glob(pattern)
-	if err != nil {
-		return nil, fmt.Errorf("cannot list the plugins: %w", err)
-	}
-
-	texts := []string{}
-
-	for _, path := range paths {
-		text, err := readfile.Read(path)
-		if err != nil {
-			return nil, fmt.Errorf("cannot read %q: %w", path, err)
-		}
-
-		texts = append(texts, string(text))
-	}
-
-	return texts, nil
-}
-
-func slotOf(text string) (int, bool) {
-	found := slotPattern.FindStringSubmatch(text)
-	if found == nil {
-		return 0, false
-	}
-
-	slot, err := strconv.Atoi(found[1])
-	if err != nil {
-		return 0, false
-	}
-
-	return slot, true
 }
 
 func titleFor(name string) string {
@@ -228,9 +184,18 @@ func titleFor(name string) string {
 	return strings.Join(words, " ")
 }
 
-func manifest(name string, title string, slot int) string {
-	return fmt.Sprintf(
-		manifestTemplate, title, filePrefix+name, versionText, slot)
+func manifestText(name string, title string, slot int) (string, error) {
+	data, err := manifest.Format(manifest.Manifest{
+		Name:    title,
+		File:    filePrefix + name,
+		Version: versionText,
+		Slot:    slot,
+	})
+	if err != nil {
+		return "", fmt.Errorf("cannot build the manifest: %w", err)
+	}
+
+	return string(data), nil
 }
 
 func entryPoint(title string) string {

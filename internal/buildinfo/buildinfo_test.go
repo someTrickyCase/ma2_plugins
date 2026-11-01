@@ -41,3 +41,28 @@ func TestDescribe(t *testing.T) {
 		})
 	}
 }
+
+func TestCommitOf(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name     string
+		settings []debug.BuildSetting
+		want     string
+	}{
+		{"short commit", gitBuild("false"), "7d21c63"},
+		{"uncommitted changes", gitBuild("true"), "7d21c63-dirty"},
+		{"no git data", nil, "dev"},
+	}
+
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := buildinfo.CommitOf(testCase.settings)
+			if got != testCase.want {
+				t.Errorf("CommitOf() = %q, want %q", got, testCase.want)
+			}
+		})
+	}
+}

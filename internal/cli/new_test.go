@@ -15,7 +15,7 @@ func TestNewCreatesThePluginFiles(t *testing.T) {
 	got := run(newCommand, "my-plugin")
 
 	expectCode(t, got, cli.ExitOK)
-	expectStdoutContains(t, got, "plugins/my-plugin/plugin.lua")
+	expectStdoutContains(t, got, "plugins/my-plugin/plugin.json")
 	expectStdoutContains(t, got, "plugins/my-plugin/main.lua")
 	expectStdoutContains(t, got, "test/plugins/my-plugin/main.test.lua")
 	expectStdoutContains(t, got, "My Plugin")
