@@ -19,7 +19,7 @@ You need this once per computer.
    **user** PATH: `lua53`, `luac53`, `luacheck`, `stylua`.
 2. **Git** on PATH.
 3. **Go and Task** on PATH. The installer runs the checks with Task, and
-   the code rules checker is a Go program (`ma2kit`).
+   the code rules checker and the bundler are Go programs (`ma2kit`).
 4. **PowerShell may run local scripts.** If you ever see
    *"running scripts is disabled on this system"*, run this once:
 
@@ -50,7 +50,7 @@ cd C:\k_ma2programming
 The script:
 
 1. runs every check (`pre-commit.ps1`) and **stops if anything is red**
-2. builds one Lua file and one XML file in `dist\`
+2. builds one Lua file and one XML file in `dist\` (with `ma2kit bundle`)
 3. checks the built file (valid Lua 5.3, our code rules)
 4. copies both files to the plugins folder of the **newest** MA2
    version: `C:\ProgramData\MA Lighting Technologies\grandma\
@@ -179,7 +179,8 @@ Two tracks live in this repo.
 file.
 
 ```
-plugins/<name>/main.lua   reads the global gma, passes it down
+plugins/<name>/plugin.json  the manifest: name, file, version, slot
+plugins/<name>/main.lua     the entry, reads the global gma, passes it down
         |
 lib/ma/swap-flow.lua      the whole run: read -> plan -> ask -> write
    |            |
@@ -190,6 +191,9 @@ talks to MA   pure logic, no gma, easy to test
 `main.lua` is 3 lines and the only place that reads the global `gma`.
 Everything below gets `gma` as an argument, so the tests pass a fake MA
 instead. `core/` never sees `gma` at all.
+
+The manifest is JSON, because the bundler is written in Go and Go cannot
+run a Lua table.
 
 **Go is the tooling.** It builds and checks the Lua, and never ships.
 
@@ -228,13 +232,16 @@ commands on every pull request. Developers need Go, Task and
 golangci-lint too (versions in `CLAUDE.md`).
 
 Start a new plugin with `ma2kit new <plugin-name>`. It writes the
-manifest, the entry point and the test, picks a free pool slot, and
-the result already passes every check.
+manifest (`plugin.json`), the entry point and the test, picks a free
+pool slot, and the result already passes every check.
 
 The built plugins live in `test/bundles/`. The Go test compares its own
 output with those files, byte for byte, so they must be rebuilt after a
 change to a plugin: `task golden`. The end-to-end tests load the very
 same files, so they run what MA2 gets.
+
+`task bundle` builds every plugin into `dist/`, without copying anything
+to MA2. That is the quickest way to look at a built file.
 
 `task coverage` prints the Go test coverage per package and the total.
 The badge above shows that total; after changing the code, run the task

@@ -53,7 +53,7 @@ All commands go through Task. `task` alone lists them.
 | `task golden`                          | rebuild the committed test bundles  |
 | `ma2kit check-rules <file>...`         | report violations, exit 1 on any    |
 | `ma2kit new <plugin-name>`             | scaffold a new plugin               |
-| `ma2kit bundle <name> --out <dir>`     | build one plugin, print MA2 commands |
+| `ma2kit bundle <name> --out <dir>`     | build one plugin, print the commands |
 | `.\install.ps1 -Plugin <name>`         | check, bundle to `dist/`, copy      |
 | `.\install.ps1 -Plugin <name> -WhatIf` | same, but copy nothing              |
 | `lua53 test/run.lua <files>`           | run some Lua test files             |
@@ -249,6 +249,10 @@ Enforced by tools:
   inline luacheck config (`inline = false`).
 - Cyclomatic complexity at most 10 per function.
 - Never make a tool less strict. If a rule blocks you, change the code.
+  The MA2 XML needs `http://` namespace URLs and revive's
+  `unsecure-url-scheme` does not like them, so they are built from
+  `httpScheme + "//..."` in `internal/bundle/xml.go` instead of turning
+  the rule off.
 
 Not enforced, but expected:
 
@@ -263,10 +267,15 @@ Not enforced, but expected:
 - File `lib/core/x.lua` -> test `test/lib/core/x.test.lua`.
 - A test file returns a table of functions named `test...`.
 - `core/` tests use plain tables. `ma/` tests use a fake `gma`.
-- `test/session/` holds the end to end tests. They run a whole plugin,
-  bundled for real, against the fake MA2, and assert the exact command
-  session MA2 would receive. One wrong command fails the test, and the
-  diff shows which one.
+- `test/session/` holds the end to end tests. They load the built
+  plugin from `test/bundles/` and run it against the fake MA2, then
+  assert the exact command session MA2 would receive. One wrong
+  command fails the test, and the diff shows which one.
+- `test/bundles/` holds the built plugins. `internal/bundle` compares
+  its own output with those files, byte for byte. They were made by
+  the old Lua bundler, so they are the proof that the Go one builds the
+  same file. Rebuild them with `task golden`, and only when the change
+  is wanted.
 - `test/support/session.lua` runs a plugin against the fake MA. Use it
   instead of writing the setup again.
 - Go tests live next to the code: `internal/rules/rules.go` ->
