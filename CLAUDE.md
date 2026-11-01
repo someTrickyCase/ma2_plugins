@@ -53,7 +53,7 @@ All commands go through Task. `task` alone lists them.
 | `task golden`                          | rebuild the committed test bundles  |
 | `ma2kit check-rules <file>...`         | report violations, exit 1 on any    |
 | `ma2kit new <plugin-name>`             | scaffold a new plugin               |
-| `ma2kit bundle <name> --out <dir>`     | build one plugin, print the commands |
+| `ma2kit bundle <name> --out <dir>`     | build one plugin, print commands    |
 | `.\install.ps1 -Plugin <name>`         | check, bundle to `dist/`, copy      |
 | `.\install.ps1 -Plugin <name> -WhatIf` | same, but copy nothing              |
 | `lua53 test/run.lua <files>`           | run some Lua test files             |
@@ -234,6 +234,23 @@ internal/manifest/   the plugin manifest, read and written
 - Folder and file names are kebab-case. The tools are Go (the rules,
   the bundler, and soon the installer), Lua (the plugins) and
   PowerShell (the install script, for now).
+
+### Next
+
+Phase 4 replaces the PowerShell:
+
+- `ma2kit install <plugin> [--at N] [--ma-version V] [--dry-run]` finds
+  MA's plugins folder (the newest `gma2_V_*`, or the one asked for),
+  builds the plugin, checks the built file against the code rules,
+  copies it and prints the MA2 commands. `install.ps1` and
+  `pre-commit.ps1` go away.
+- The checks stay with Task: `task install <plugin>` runs `task check`
+  first, then the install. The Go tool never shells out to Task.
+- No Lua syntax check in the install: the end-to-end tests load and run
+  the built bundle, and the golden test proves that a fresh build is
+  the same file. That is stronger than `luac53 -p`.
+- Then phase 5: the Bubble Tea TUI (issue #3). Then phase 6: the
+  release zip on tag `v*`.
 
 ## Code conventions
 
