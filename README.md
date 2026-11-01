@@ -1,4 +1,7 @@
-# k_ma2programming
+# ma2_plugins
+
+[![CI](https://github.com/someTrickyCase/ma2_plugins/actions/workflows/ci.yml/badge.svg)](https://github.com/someTrickyCase/ma2_plugins/actions/workflows/ci.yml)
+[![Go coverage](https://img.shields.io/badge/go%20coverage-91.5%25-brightgreen)](https://github.com/someTrickyCase/ma2_plugins)
 
 Lua plugins for grandMA2, written and tested on Windows, then delivered
 to MA2 with one command.
@@ -15,7 +18,9 @@ You need this once per computer.
 1. **Lua tools** in `C:\lua-executables`, and that folder in your
    **user** PATH: `lua53`, `luac53`, `luacheck`, `stylua`.
 2. **Git** on PATH.
-3. **PowerShell may run local scripts.** If you ever see
+3. **Go and Task** on PATH. The installer runs the checks with Task, and
+   the code rules checker is a Go program (`ma2kit`).
+4. **PowerShell may run local scripts.** If you ever see
    *"running scripts is disabled on this system"*, run this once:
 
    ```powershell
@@ -30,6 +35,8 @@ lua53 -v          # Lua 5.3.6
 luacheck --version
 stylua --version
 git --version
+go version         # go1.27
+task --version     # 3.54.0
 ```
 
 ## 2. Install a plugin
@@ -164,9 +171,57 @@ Not tested yet. Two ways that should work:
 | MA2 still runs the old version            | `Delete Plugin N`, then import again        |
 | Conflict popup                            | Fix the listed IDs in the patch, run again  |
 
+## Architecture
+
+Two tracks live in this repo.
+
+**Lua is what MA2 runs.** It travels to the console inside the show
+file.
+
+```
+plugins/<name>/main.lua   reads the global gma, passes it down
+        |
+lib/ma/swap-flow.lua      the whole run: read -> plan -> ask -> write
+   |            |
+lib/ma/*      lib/core/*
+talks to MA   pure logic, no gma, easy to test
+```
+
+`main.lua` is 3 lines and the only place that reads the global `gma`.
+Everything below gets `gma` as an argument, so the tests pass a fake MA
+instead. `core/` never sees `gma` at all.
+
+**Go is the tooling.** It builds and checks the Lua, and never ships.
+
+```
+cmd/ma2kit/main.go   calls internal/cli.Run and nothing else
+        |
+internal/cli/        one file per command, reads the files
+        |
+internal/rules/      the code rules, one file per language
+internal/scaffold/   builds a new plugin from a template
+internal/readfile/   reads a file by name, without leaving its folder
+```
+
+The code rules are simple on purpose: **only printable ASCII, and no
+comments.** One tool checks them, so the Lua and the Go files are held
+to the same standard.
+
+```
+ma2kit check-rules lib/core/swap-ids.lua
+```
+
 ## For developers
 
 Rules, layout, architecture and conventions: `CLAUDE.md`. Run
 `task check` before every commit. GitHub Actions runs the same
 commands on every pull request. Developers need Go, Task and
 golangci-lint too (versions in `CLAUDE.md`).
+
+Start a new plugin with `ma2kit new <plugin-name>`. It writes the
+manifest, the entry point and the test, picks a free pool slot, and
+the result already passes every check.
+
+`task coverage` prints the Go test coverage per package and the total.
+The badge above shows that total; after changing the code, run the task
+and update the number if it moved.

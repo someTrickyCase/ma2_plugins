@@ -1,7 +1,6 @@
 local lu = require("luaunit")
 local bundle = require("dev.build.bundler")
-local checkRules = require("dev.lint.code-rules")
-local fakeGma = require("test.support.fake-gma")
+local session = require("test.support.session")
 
 local STAMP = { commit = "abc1234", date = "2026-10-24" }
 
@@ -33,16 +32,6 @@ local function run(parts, environment, ...)
   setmetatable(environment, { __index = _G })
   local chunk = assert(load(bundle.lua(parts), "=bundle", "t", environment))
   return chunk(...)
-end
-
-local function readRealFile(path)
-  local file = io.open(path, "rb")
-  if not file then
-    return nil
-  end
-  local text = file:read("a")
-  file:close()
-  return text
 end
 
 local tests = {}
@@ -144,13 +133,6 @@ function tests.testBundleEchoesVersionStampOnLoad()
   lu.assertEquals(echoes, { "Answer 1.2.3 (abc1234, 2026-10-24)" })
 end
 
-function tests.testBundleFollowsOurOwnRules()
-  local parts = partsWith("return 1\n", {
-    { name = "core.b", text = "return 2\n" },
-  })
-  lu.assertEquals(checkRules.findViolations(bundle.lua(parts)), {})
-end
-
 function tests.testXmlPointsToTheLuaFile()
   local xml = bundle.xml(partsWith("return 1\n"))
   lu.assertStrContains(xml, 'name="Answer"')
@@ -214,20 +196,11 @@ function tests.testInstructionsNeedASlot()
 end
 
 function tests.testRealChannelToFixtureBundleMovesIds()
-  local parts = bundle.collect("channel-to-fixture", readRealFile, STAMP)
-  local fake = fakeGma.new({
+  local fake = session.run("channel-to-fixture", {
     layers = {
       { name = "fren", fixtures = { { name = "Dim 1", chaId = "801" } } },
     },
   })
-  local environment = {
-    gma = fake.gma,
-    require = function(name)
-      error("real require used for " .. name)
-    end,
-  }
-  local start = run(parts, environment, "plugin_1", "Channel to Fixture")
-  start()
   lu.assertEquals(fake.propsAt(1, 1).FixId, "801")
   lu.assertEquals(fake.propsAt(1, 1).ChaId, "-")
 end

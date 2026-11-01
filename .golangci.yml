@@ -27,6 +27,10 @@ linters:
         - name: add-constant
           arguments:
             - allowInts: "0,1"
+  exclusions:
+    paths:
+      - scratch$
+      - dist$
 
 formatters:
   enable:
