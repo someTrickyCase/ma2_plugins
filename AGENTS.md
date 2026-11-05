@@ -1,30 +1,29 @@
 # ma2_plugins agent and development guide
 
-Develop and edit this project only in `C:\k_ma2programming`.
+Develop and edit this project directly in its checkout.
 Lua runs inside grandMA2 onPC 3.9.60; Go provides development tools and the
 standalone Windows distribution installer. There are no PowerShell
 scripts in the repository. User instructions and commands: [README.md](README.md).
 
-MA2 API facts, patch-tree research and probe recipes live in Kirk's local
-`C:\Users\snowi\.claude\skills\ma2-plugins` skill. Consult it before
-writing code that calls `gma`, and update it after verified probes.
-Keep console research there rather than copying it into this repository.
+Consult available MA2 API research and probe recipes before writing code
+that calls `gma`. Verify unknown console behaviour with a probe and record
+the findings in the appropriate knowledge base. Keep private reference
+material outside this public repository.
 
-## Working with Kirk
+## Working in this repository
 
-Preserve existing uncommitted work. Use simple English and explain why.
-Kirk is learning programming and English; explain unfamiliar terms and
-correct language gently. Do not create a duplicate project under .claude.
-
-His shared personal preferences are in
-`C:\Users\snowi\.claude\CLAUDE.md`. Relevant project and feedback notes are
-indexed by
-`C:\Users\snowi\.claude\projects\C--Users-snowi--claude\memory\MEMORY.md`.
-Read relevant notes, but verify current files and Git state when older
+Preserve existing uncommitted work and explain changes clearly. Work in
+the original checkout. Verify current files and Git state when historical
 status entries disagree. This AGENTS.md is the sole project instruction
 and development guide; README.md covers user workflows.
 
 ## Hard rules
+
+- PERSONAL, CONFIDENTIAL OR SENSITIVE INFORMATION MUST NEVER BE EXPOSED
+  PUBLICLY. This includes public docs, articles, repositories, code,
+  commits, issues, pull requests, releases, screenshots, logs and any
+  other public output. Keep private notes and local setup outside the
+  repository. Use generic examples and check content before publishing.
 
 - Never commit to main. Use a branch and a pull request with green CI.
 - TDD: failing test, smallest passing implementation, then refactor.
@@ -35,7 +34,7 @@ and development guide; README.md covers user workflows.
   main loop with long work without yielding or waiting `os.execute`.
 - Follow SOLID and OOP practices where useful; simplicity wins.
 - Never weaken linting or type/code checks to make a change pass.
-- Do not install tools for Kirk. Explain what is needed and let him do it.
+- Let the user install host tools; provide the required commands.
 - Do not alter the clipboard. Print MA2 commands as a numbered list,
   each command on its own line with its explanation above.
 - Keep documentation and relevant local memory current as work proceeds.
@@ -50,9 +49,9 @@ and development guide; README.md covers user workflows.
 
 | Tool | Version | Location/configuration |
 | --- | --- | --- |
-| Lua / luac | 5.3.6 | `C:\lua-executables`, lua53 / luac53 |
-| luacheck | 1.2.0 | `C:\lua-executables`, `.luacheckrc` |
-| StyLua | 2.3.1 | `C:\lua-executables`, `stylua.toml` |
+| Lua / luac | 5.3.6 | lua53 / luac53 on PATH |
+| luacheck | 1.2.0 | `.luacheckrc` |
+| StyLua | 2.3.1 | `stylua.toml` |
 | LuaUnit | 3.4 | `third_party/luaunit.lua` |
 | Go | 1.27.0 | `go.mod` |
 | golangci-lint | 2.15.0 | `.golangci.yml` |
@@ -244,7 +243,7 @@ dropdown and Install/Cancel buttons. The developer terminal picker
 supports S to edit a per-plugin slot. Validate
 positive, distinct selected slots before installation. Both source and
 package workflows use the edited slots in printed import commands.
-Choices apply to the current install only; do not persist them (Kirk).
+Choices apply to the current install only; do not persist them.
 
 The source and prebuilt paths still have separate copy implementations.
 Do not describe them as a unified installer. A shared prepared-files
@@ -358,11 +357,11 @@ byte-for-byte installed files/import commands. GitHub asset sizes and
 SHA256 digests matched local files before publication. Build/release
 artifacts are under ignored dist/releases/; do not treat them as source.
 
-Still unverified: interactive distribution picker operation by Kirk,
+Still unverified: end-user interactive distribution picker operation,
 latest installer on real onPC, and hardware consoles. Earlier onPC plugin
 runs verified the ID/conflict behaviour; fake MA2 is not a console test.
 
-Possible next work, after Kirk's release test:
+Possible next work, after end-user release testing:
 
 1. Refactor the two copy paths into one prepared-files installer with
    shared validation, while retaining source and package readers.
