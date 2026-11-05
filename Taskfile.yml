@@ -115,7 +115,19 @@ tasks:
   dist:
     desc: Build the distribution bundle with the installer and the plugins
     cmds:
-      - go build -o dist/bundle/install{{exeExt}} ./cmd/setup
+      - task: setup:resources
+      - cmd: go build -ldflags="-H windowsgui" -o dist/bundle/install.exe ./cmd/setup
+        platforms: [windows]
+      - cmd: go build -o dist/bundle/install ./cmd/setup
+        platforms: [linux, darwin]
       - go run -buildvcs=true ./cmd/ma2kit bundle --all --out dist/bundle
       - go run -buildvcs=true ./cmd/ma2kit manifest --out dist/bundle
       - ls -la dist/bundle
+
+  setup:resources:
+    desc: Embed the Windows installer manifest
+    cmds:
+      - >-
+        go run github.com/akavel/rsrc@v0.10.2
+        -manifest cmd/setup/install.manifest
+        -arch amd64 -o cmd/setup/resource_windows_amd64.syso

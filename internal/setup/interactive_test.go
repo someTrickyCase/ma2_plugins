@@ -2,9 +2,11 @@ package setup_test
 
 import (
 	"bytes"
+	"io"
 	"strings"
 	"testing"
 
+	"github.com/someTrickyCase/ma2_plugins/internal/mahome"
 	"github.com/someTrickyCase/ma2_plugins/internal/setup"
 	"github.com/someTrickyCase/ma2_plugins/internal/tui"
 )
@@ -29,6 +31,29 @@ func TestInteractivePresentsCommandsBeforeReturning(t *testing.T) {
 	code := setup.Interactive(args, &stdout, &stderr, fakePicker(items), show)
 	if code != 0 || !strings.Contains(shown, "At Plugin 205") {
 		t.Fatalf("Interactive() = %d, result = %q", code, shown)
+	}
+}
+
+func TestCancelClosesWithoutAnErrorResult(t *testing.T) {
+	t.Parallel()
+
+	var stdout, stderr bytes.Buffer
+
+	pick := func(
+		_ io.Writer, _ []tui.Item, _ []mahome.Version,
+	) (tui.Selection, error) {
+		return tui.Selection{}, tui.ErrCancelled
+	}
+	show := func(_ string) error {
+		t.Error("cancel opened a result window")
+
+		return nil
+	}
+	args := []string{boxFlag, writeBox(t), maRootFlag, writeMaFolder(t)}
+
+	code := setup.Interactive(args, &stdout, &stderr, pick, show)
+	if code != 0 || stderr.Len() != 0 {
+		t.Fatalf("cancel = %d: %s", code, stderr.String())
 	}
 }
 

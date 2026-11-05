@@ -19,6 +19,7 @@ linters:
             - github.com/someTrickyCase/ma2_plugins
             - github.com/charmbracelet/bubbletea
             - github.com/charmbracelet/lipgloss
+            - github.com/lxn/walk
     ireturn:
       allow:
         - anon

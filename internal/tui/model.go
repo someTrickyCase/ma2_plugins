@@ -20,7 +20,9 @@ const (
 	moveDown = 1
 )
 
-var errNoChoice = errors.New("nothing was chosen")
+var ErrCancelled = errors.New("installation cancelled")
+
+var errNoChoice = ErrCancelled
 
 type step int
 

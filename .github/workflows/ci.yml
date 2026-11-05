@@ -78,3 +78,28 @@ jobs:
 
       - name: Go coverage
         run: task coverage
+
+  windows:
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - uses: arduino/setup-task@v2
+        with:
+          version: ${{ env.TASK_VERSION }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: golangci/golangci-lint-action@v8
+        with:
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
+          args: ./cmd/... ./internal/...
+
+      - name: Windows tests
+        run: task go:test
+
+      - name: Build native installer
+        run: task dist

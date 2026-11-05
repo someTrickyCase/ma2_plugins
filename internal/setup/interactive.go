@@ -2,6 +2,7 @@ package setup
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"slices"
@@ -22,14 +23,23 @@ func Interactive(
 
 	var output, problems bytes.Buffer
 
+	cancelled := false
+
 	livePick := func(
 		_ io.Writer,
 		items []tui.Item,
 		versions []mahome.Version,
 	) (tui.Selection, error) {
-		return pick(stdout, items, versions)
+		selection, err := pick(stdout, items, versions)
+		cancelled = errors.Is(err, tui.ErrCancelled)
+
+		return selection, err
 	}
 	code := Run(args, &output, &problems, livePick)
+
+	if cancelled {
+		return 0
+	}
 
 	_, _ = io.Copy(stdout, bytes.NewReader(output.Bytes()))
 	_, _ = io.Copy(stderr, bytes.NewReader(problems.Bytes()))
