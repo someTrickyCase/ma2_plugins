@@ -8,5 +8,10 @@ import (
 )
 
 func main() {
-	os.Exit(setup.Run(os.Args[1:], os.Stdout, os.Stderr, tui.Run))
+	show := func(text string) error {
+		return tui.ShowResult(os.Stdout, text)
+	}
+
+	os.Exit(setup.Interactive(
+		os.Args[1:], os.Stdout, os.Stderr, tui.Run, show))
 }
