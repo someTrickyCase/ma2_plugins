@@ -8,13 +8,16 @@ import (
 )
 
 const (
-	pluginDir    = "plugins"
-	answerPlugin = "answer"
-	outFolder    = "out"
-	bundleCmd    = "bundle"
-	outFlag      = "--out"
-	dirMode      = 0o750
-	fileMode     = 0o600
+	answerLua     = "k-answer.lua"
+	answerXML     = "k-answer.xml"
+	bundleFailure = "bundle failed with %d: %s"
+	pluginDir     = "plugins"
+	answerPlugin  = "answer"
+	outFolder     = "out"
+	bundleCmd     = "bundle"
+	outFlag       = "--out"
+	dirMode       = 0o750
+	fileMode      = 0o600
 )
 
 const answerJSON = `{
@@ -24,6 +27,24 @@ const answerJSON = `{
   "slot": 101
 }
 `
+
+func TestBundleAllDiscoversPlugins(t *testing.T) {
+	root := t.TempDir()
+	writePlugin(t, root)
+	t.Chdir(root)
+
+	got := run(bundleCmd, "--all", outFlag, outFolder)
+	if got.code != 0 {
+		t.Fatalf(bundleFailure, got.code, got.stderr)
+	}
+
+	for _, name := range []string{answerLua, answerXML} {
+		_, err := os.Stat(filepath.Join(outFolder, name))
+		if err != nil {
+			t.Fatalf("missing %q: %v", name, err)
+		}
+	}
+}
 
 func writePlugin(t *testing.T, root string) {
 	t.Helper()
@@ -56,10 +77,10 @@ func TestBundle(t *testing.T) {
 	got := run(bundleCmd, answerPlugin, outFlag, outFolder)
 
 	if got.code != 0 {
-		t.Fatalf("bundle failed with %d: %s", got.code, got.stderr)
+		t.Fatalf(bundleFailure, got.code, got.stderr)
 	}
 
-	for _, name := range []string{"k-answer.lua", "k-answer.xml"} {
+	for _, name := range []string{answerLua, answerXML} {
 		_, err := os.Stat(filepath.Join(outFolder, name))
 		if err != nil {
 			t.Errorf("missing %q: %v", name, err)
@@ -71,7 +92,7 @@ func TestBundle(t *testing.T) {
 		"out/k-answer.xml",
 		"MA2 commands, paste them in this order:",
 		"     Delete Plugin 101",
-		`     Import "k-answer.xml" At Plugin 101`,
+		`     Import "` + answerXML + `" At Plugin 101`,
 		"     Plugin 101",
 	}
 
@@ -90,7 +111,7 @@ func TestBundleTakesTheGivenSlot(t *testing.T) {
 	got := run(bundleCmd, answerPlugin, outFlag, outFolder, "--at", "5")
 
 	if got.code != 0 {
-		t.Fatalf("bundle failed with %d: %s", got.code, got.stderr)
+		t.Fatalf(bundleFailure, got.code, got.stderr)
 	}
 
 	if !strings.Contains(got.stdout, "     Delete Plugin 5") {

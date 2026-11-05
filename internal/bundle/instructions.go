@@ -4,16 +4,18 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+
+	"github.com/someTrickyCase/ma2_plugins/internal/manifest"
 )
 
 var errNoSlot = errors.New(
 	"no plugin slot: add slot to plugin.json or pass one")
 
-func Instructions(plugin Plugin, slot int) ([]string, error) {
+func Instructions(one manifest.Manifest, slot int) ([]string, error) {
 	target := slot
 
 	if target == 0 {
-		target = plugin.Manifest.Slot
+		target = one.Slot
 	}
 
 	if target == 0 {
@@ -28,7 +30,7 @@ func Instructions(plugin Plugin, slot int) ([]string, error) {
 		"  1. Only when updating, remove the old copy:",
 		"     Delete " + pool,
 		"  2. Load the plugin into the pool:",
-		fmt.Sprintf(`     Import "%s.xml" At %s`, plugin.Manifest.File, pool),
+		fmt.Sprintf(`     Import "%s.xml" At %s`, one.File, pool),
 		"  3. Run it (on a show copy first!):",
 		"     " + pool,
 	}, nil

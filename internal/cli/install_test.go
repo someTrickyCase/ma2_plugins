@@ -79,7 +79,7 @@ func TestInstallCopiesIntoTheNewestVersion(t *testing.T) {
 
 	target := maPluginsFolder(maRoot, newVersion)
 
-	for _, name := range []string{"k-answer.lua", "k-answer.xml"} {
+	for _, name := range []string{answerLua, answerXML} {
 		_, err := os.Stat(filepath.Join(target, name))
 		if err != nil {
 			t.Errorf("missing %q: %v", name, err)
@@ -107,7 +107,7 @@ func TestInstallTakesTheGivenVersion(t *testing.T) {
 
 	target := maPluginsFolder(maRoot, oldVersion)
 
-	_, err := os.Stat(filepath.Join(target, "k-answer.lua"))
+	_, err := os.Stat(filepath.Join(target, answerLua))
 	if err != nil {
 		t.Errorf("missing the built file: %v", err)
 	}
@@ -144,7 +144,7 @@ func TestInstallPrintsTheMa2Commands(t *testing.T) {
 
 	expectCode(t, got, cli.ExitOK)
 	expectStdoutContains(t, got, "Delete Plugin 101")
-	expectStdoutContains(t, got, `Import "k-answer.xml" At Plugin 101`)
+	expectStdoutContains(t, got, `Import "`+answerXML+`" At Plugin 101`)
 	expectStdoutContains(t, got, "Plugin 101")
 }
 

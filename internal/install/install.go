@@ -55,17 +55,12 @@ func Do(req Request) (Result, error) {
 	lua := bundle.Lua(req.Plugin)
 	xml := bundle.XML(req.Plugin)
 
-	err := checkRules(name+".lua", lua)
+	err := Validate(name, lua)
 	if err != nil {
 		return Result{}, err
 	}
 
-	err = checkOurName(name)
-	if err != nil {
-		return Result{}, err
-	}
-
-	instructions, err := bundle.Instructions(req.Plugin, req.Slot)
+	instructions, err := bundle.Instructions(req.Plugin.Manifest, req.Slot)
 	if err != nil {
 		return Result{}, fmt.Errorf("cannot build the commands: %w", err)
 	}
@@ -146,11 +141,22 @@ func checkRules(path string, text string) error {
 }
 
 func checkOurName(name string) error {
-	if !strings.HasPrefix(name, ourPrefix) {
+	if !strings.HasPrefix(name, ourPrefix) ||
+		len(name) == len(ourPrefix) ||
+		strings.ContainsAny(name, `/\:.`) {
 		return fmt.Errorf("%w: %q", errNotOurs, name)
 	}
 
 	return nil
+}
+
+func Validate(name string, lua string) error {
+	err := checkOurName(name)
+	if err != nil {
+		return err
+	}
+
+	return checkRules(name+".lua", lua)
 }
 
 func writeFiles(targets []target) error {

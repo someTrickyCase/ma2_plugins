@@ -8,14 +8,13 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/someTrickyCase/ma2_plugins/internal/mahome"
-	"github.com/someTrickyCase/ma2_plugins/internal/manifest"
 )
 
 var errNoModel = errors.New("the installer is not the model we made")
 
 func Run(
 	output io.Writer,
-	plugins []manifest.Entry,
+	plugins []Item,
 	versions []mahome.Version,
 ) (Selection, error) {
 	model := New(plugins, versions)

@@ -5,8 +5,6 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
-
-	"github.com/someTrickyCase/ma2_plugins/internal/manifest"
 )
 
 const (
@@ -35,8 +33,8 @@ func (model Model) pluginView() string {
 		"",
 	)
 
-	for index, entry := range model.plugins {
-		lines = append(lines, model.pluginLine(index, entry))
+	for index, item := range model.plugins {
+		lines = append(lines, model.pluginLine(index, item))
 	}
 
 	lines = append(lines,
@@ -47,7 +45,7 @@ func (model Model) pluginView() string {
 	return strings.Join(lines, "\n")
 }
 
-func (model Model) pluginLine(index int, entry manifest.Entry) string {
+func (model Model) pluginLine(index int, item Item) string {
 	pointer := spaceMark
 	mark := spaceMark
 
@@ -62,9 +60,9 @@ func (model Model) pluginLine(index int, entry manifest.Entry) string {
 	line := fmt.Sprintf("%s [%s] %s  %s  slot %d",
 		pointer,
 		mark,
-		entry.Manifest.Name,
-		entry.Manifest.Version,
-		entry.Manifest.Slot,
+		item.Name,
+		item.Version,
+		item.Slot,
 	)
 
 	if index == model.cursor {

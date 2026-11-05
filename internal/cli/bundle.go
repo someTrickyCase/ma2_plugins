@@ -10,6 +10,7 @@ import (
 
 	"github.com/someTrickyCase/ma2_plugins/internal/buildinfo"
 	"github.com/someTrickyCase/ma2_plugins/internal/bundle"
+	"github.com/someTrickyCase/ma2_plugins/internal/manifest"
 )
 
 const (
@@ -22,6 +23,10 @@ const (
 func runBundle(args []string, stdout, stderr io.Writer) int {
 	if len(args) == 0 {
 		return showUsage(stderr, "bundle needs a plugin name")
+	}
+
+	if args[0] == "--all" {
+		return runBundleAll(args[1:], stdout, stderr)
 	}
 
 	flags := flag.NewFlagSet("bundle", flag.ContinueOnError)
@@ -43,7 +48,7 @@ func runBundle(args []string, stdout, stderr io.Writer) int {
 		return showUsage(stderr, err.Error())
 	}
 
-	lines, err := bundle.Instructions(plugin, *slot)
+	lines, err := bundle.Instructions(plugin.Manifest, *slot)
 	if err != nil {
 		return showUsage(stderr, err.Error())
 	}
@@ -54,6 +59,28 @@ func runBundle(args []string, stdout, stderr io.Writer) int {
 	}
 
 	printBundle(stdout, []string{files.lua, files.xml}, lines)
+
+	return ExitOK
+}
+
+func runBundleAll(args []string, stdout, stderr io.Writer) int {
+	entries, err := manifest.ReadEntries(".")
+	if err != nil {
+		return showUsage(stderr, err.Error())
+	}
+
+	if len(entries) == 0 {
+		return showUsage(stderr, "no plugins found")
+	}
+
+	for _, entry := range entries {
+		one := append([]string{entry.Folder}, args...)
+
+		code := runBundle(one, stdout, stderr)
+		if code != ExitOK {
+			return code
+		}
+	}
 
 	return ExitOK
 }

@@ -7,7 +7,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/someTrickyCase/ma2_plugins/internal/mahome"
-	"github.com/someTrickyCase/ma2_plugins/internal/manifest"
 	"github.com/someTrickyCase/ma2_plugins/internal/tui"
 )
 
@@ -66,25 +65,19 @@ func key(name string) tea.KeyMsg {
 	}
 }
 
-func entries() []manifest.Entry {
-	return []manifest.Entry{
+func entries() []tui.Item {
+	return []tui.Item{
 		{
-			Folder: firstFolder,
-			Manifest: manifest.Manifest{
-				Name:    firstName,
-				File:    "k-channel-to-fixture",
-				Version: "0.2.0",
-				Slot:    firstSlot,
-			},
+			Key:     firstFolder,
+			Name:    firstName,
+			Version: "0.2.0",
+			Slot:    firstSlot,
 		},
 		{
-			Folder: "fixture-to-channel",
-			Manifest: manifest.Manifest{
-				Name:    secondName,
-				File:    "k-fixture-to-channel",
-				Version: "0.2.0",
-				Slot:    secondSlot,
-			},
+			Key:     "fixture-to-channel",
+			Name:    secondName,
+			Version: "0.2.0",
+			Slot:    secondSlot,
 		},
 	}
 }
@@ -216,12 +209,12 @@ func TestTheSelectionHasThePickedPluginAndVersion(t *testing.T) {
 		t.Fatalf("Selection() error = %v", err)
 	}
 
-	if len(got.Plugins) != 1 {
-		t.Fatalf("Selection() = %d plugins, want 1", len(got.Plugins))
+	if len(got.Items) != 1 {
+		t.Fatalf("Selection() = %d plugins, want 1", len(got.Items))
 	}
 
-	if got.Plugins[0].Folder != firstFolder {
-		t.Errorf("Folder = %q, want %q", got.Plugins[0].Folder, firstFolder)
+	if got.Items[0].Key != firstFolder {
+		t.Errorf("Key = %q, want %q", got.Items[0].Key, firstFolder)
 	}
 
 	if got.Version.Text != versionTwo {

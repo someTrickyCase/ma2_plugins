@@ -27,6 +27,32 @@ const sampleText = `{
 }
 `
 
+func TestListRoundTrip(t *testing.T) {
+	t.Parallel()
+
+	one, err := manifest.Parse(sampleText)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	data, err := manifest.FormatList([]manifest.Manifest{one})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	path := filepath.Join(t.TempDir(), manifest.ListFile)
+	write(t, path, string(data))
+
+	got, err := manifest.ReadList(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(got) != 1 || got[0] != one {
+		t.Fatalf("ReadList() = %v, want %v", got, one)
+	}
+}
+
 func write(t *testing.T, path string, text string) {
 	t.Helper()
 

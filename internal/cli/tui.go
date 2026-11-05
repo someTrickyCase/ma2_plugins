@@ -30,12 +30,14 @@ func runTUI(args []string, stdout, stderr io.Writer) int {
 		return showUsage(stderr, "no plugins found")
 	}
 
+	items := itemsOf(entries)
+
 	versions, err := mahome.Versions(*maRoot)
 	if err != nil {
 		return showUsage(stderr, err.Error())
 	}
 
-	selection, err := tui.Run(stdout, entries, versions)
+	selection, err := tui.Run(stdout, items, versions)
 	if err != nil {
 		return showUsage(stderr, err.Error())
 	}
@@ -52,11 +54,26 @@ func runTUI(args []string, stdout, stderr io.Writer) int {
 	return one.run()
 }
 
-func foldersOf(selection tui.Selection) []string {
-	folders := make([]string, 0, len(selection.Plugins))
+func itemsOf(entries []manifest.Entry) []tui.Item {
+	items := make([]tui.Item, 0, len(entries))
 
-	for _, entry := range selection.Plugins {
-		folders = append(folders, entry.Folder)
+	for _, entry := range entries {
+		items = append(items, tui.Item{
+			Key:     entry.Folder,
+			Name:    entry.Manifest.Name,
+			Version: entry.Manifest.Version,
+			Slot:    entry.Manifest.Slot,
+		})
+	}
+
+	return items
+}
+
+func foldersOf(selection tui.Selection) []string {
+	folders := make([]string, 0, len(selection.Items))
+
+	for _, item := range selection.Items {
+		folders = append(folders, item.Key)
 	}
 
 	return folders
