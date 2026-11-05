@@ -29,7 +29,7 @@ it after every probe.
 | `lua53`         | 5.3.6   | `C:\lua-executables`  |                      |
 | `luacheck`      | 1.2.0   | `C:\lua-executables`  | `.luacheckrc`        |
 | `stylua`        | 2.3.1   | `C:\lua-executables`  | `stylua.toml`        |
-| LuaUnit         | 3.4     | `vendor/luaunit.lua`  |                      |
+| LuaUnit         | 3.4     | `third_party/luaunit.lua` |                 |
 | `go`            | 1.27.0  | winget                | `go.mod`             |
 | `golangci-lint` | 2.15.0  | winget                | `.golangci.yml`      |
 | `task`          | 3.54.0  | winget                | `Taskfile.yml`       |
@@ -78,6 +78,9 @@ same commands. Keep the Taskfile working on Windows and Linux.
 
 - Module `github.com/someTrickyCase/ma2_plugins`. `cmd/ma2kit/main.go`
   only calls `internal/cli.Run`; all logic lives in `internal/`.
+- The Go modules come from the module cache, not from a `vendor/` folder.
+  A `vendor/` folder at the root turns on Go's vendoring mode, so the Lua
+  library lives in `third_party/` instead.
 - golangci-lint runs **every** linter. Only these are off, each for a
   reason: `wsl`, `gomodguard`, `exhaustruct` (deprecated, their `_v2` /
   `_v5` successors are on), revive `exported` and `package-comments`
@@ -124,7 +127,7 @@ internal/   Go packages, each with its _test.go files
   install/  the install: check the rules, copy the files
 .github/    CI workflow
 Taskfile.yml    the one entry point for every check and build
-vendor/     other people's code. Do not edit. Not linted.
+third_party/ other people's code. Do not edit. Not linted.
 scratch/    experiments and probes. Ignored by Git and tools.
 dist/       build output. Ignored by Git.
 ```
