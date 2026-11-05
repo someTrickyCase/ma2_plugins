@@ -22,6 +22,11 @@ type Manifest struct {
 	Slot    int    `json:"slot"`
 }
 
+type Entry struct {
+	Folder   string
+	Manifest Manifest
+}
+
 func Path(root string, plugin string) string {
 	return filepath.Join(root, pluginFolder, plugin, fileName)
 }
@@ -48,6 +53,21 @@ func Read(path string) (Manifest, error) {
 }
 
 func ReadAll(root string) ([]Manifest, error) {
+	entries, err := ReadEntries(root)
+	if err != nil {
+		return nil, err
+	}
+
+	all := []Manifest{}
+
+	for _, entry := range entries {
+		all = append(all, entry.Manifest)
+	}
+
+	return all, nil
+}
+
+func ReadEntries(root string) ([]Entry, error) {
 	pattern := filepath.Join(root, pluginFolder, "*", fileName)
 
 	paths, err := filepath.Glob(pattern)
@@ -55,7 +75,7 @@ func ReadAll(root string) ([]Manifest, error) {
 		return nil, fmt.Errorf("cannot list the plugins: %w", err)
 	}
 
-	all := []Manifest{}
+	all := []Entry{}
 
 	for _, path := range paths {
 		one, err := Read(path)
@@ -63,7 +83,9 @@ func ReadAll(root string) ([]Manifest, error) {
 			return nil, err
 		}
 
-		all = append(all, one)
+		folder := filepath.Base(filepath.Dir(path))
+
+		all = append(all, Entry{Folder: folder, Manifest: one})
 	}
 
 	return all, nil

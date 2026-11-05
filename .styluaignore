@@ -1,4 +1,4 @@
-vendor/
+third_party/
 scratch/
 dist/
 test/bundles/

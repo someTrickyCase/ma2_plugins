@@ -29,7 +29,7 @@ it after every probe.
 | `lua53`         | 5.3.6   | `C:\lua-executables`  |                      |
 | `luacheck`      | 1.2.0   | `C:\lua-executables`  | `.luacheckrc`        |
 | `stylua`        | 2.3.1   | `C:\lua-executables`  | `stylua.toml`        |
-| LuaUnit         | 3.4     | `vendor/luaunit.lua`  |                      |
+| LuaUnit         | 3.4     | `third_party/luaunit.lua` |                 |
 | `go`            | 1.27.0  | winget                | `go.mod`             |
 | `golangci-lint` | 2.15.0  | winget                | `.golangci.yml`      |
 | `task`          | 3.54.0  | winget                | `Taskfile.yml`       |
@@ -51,17 +51,21 @@ All commands go through Task. `task` alone lists them.
 | `task build`                           | build `dist/ma2kit.exe`             |
 | `task bundle`                          | build every plugin into `dist/`     |
 | `task golden`                          | rebuild the committed test bundles  |
+| `task install -- <plugin>`             | check, then install into MA2        |
+| `task tui`                             | check, then pick the plugins        |
 | `ma2kit check-rules <file>...`         | report violations, exit 1 on any    |
 | `ma2kit new <plugin-name>`             | scaffold a new plugin               |
 | `ma2kit bundle <name> --out <dir>`     | build one plugin, print commands    |
-| `.\install.ps1 -Plugin <name>`         | check, bundle to `dist/`, copy      |
-| `.\install.ps1 -Plugin <name> -WhatIf` | same, but copy nothing              |
+| `ma2kit install <name> [--dry-run]`    | install one plugin into MA2         |
+| `ma2kit tui [--dry-run]`               | pick the plugins, then install      |
 | `lua53 test/run.lua <files>`           | run some Lua test files             |
 | `go test ./internal/<pkg>`             | run one Go package's tests          |
 
-`task check` must pass before every commit. `pre-commit.ps1` is only a
-wrapper around it, kept for `install.ps1` until `ma2kit install`
-replaces both.
+`task check` must pass before every commit. `task install` runs it
+first, so an install never ships a broken plugin. The `--` in
+`task install -- <plugin>` is needed: Task reads the words after it as
+arguments for `ma2kit`, without it Task looks for a task with that
+name.
 
 ## CI
 
@@ -76,6 +80,9 @@ same commands. Keep the Taskfile working on Windows and Linux.
 
 - Module `github.com/someTrickyCase/ma2_plugins`. `cmd/ma2kit/main.go`
   only calls `internal/cli.Run`; all logic lives in `internal/`.
+- The Go modules come from the module cache, not from a `vendor/` folder.
+  A `vendor/` folder at the root turns on Go's vendoring mode, so the Lua
+  library lives in `third_party/` instead.
 - golangci-lint runs **every** linter. Only these are off, each for a
   reason: `wsl`, `gomodguard`, `exhaustruct` (deprecated, their `_v2` /
   `_v5` successors are on), revive `exported` and `package-comments`
@@ -83,8 +90,11 @@ same commands. Keep the Taskfile working on Windows and Linux.
   excluded per file: gosec `G304` is on everywhere, and the code reads
   files through `internal/readfile`, which cannot leave the folder it
   was given.
-- `depguard` allows only the Go standard library and this module. A new
+- `depguard` allows only the Go standard library, this module and
+  Bubble Tea with lipgloss (the terminal UI of the picker). A new
   dependency must be added to `.golangci.yml` on purpose.
+- `ireturn` allows the Bubble Tea model, because the framework asks
+  the model to return its own interface.
 - Tests follow Go's convention: `x_test.go` next to `x.go`, in the
   external `x_test` package. Table tests for many cases of one function,
   small `expect...` helpers instead of repeated checks.
@@ -118,11 +128,12 @@ internal/   Go packages, each with its _test.go files
   scaffold/ builds a new plugin from a template
   readfile/ reads a file by name, without leaving its folder
   buildinfo/ version and commit stamp
+  mahome/   where MA2 keeps its data: the version folders
+  install/  the install: check the rules, copy the files
+  tui/      the picker: a small terminal program (Bubble Tea)
 .github/    CI workflow
 Taskfile.yml    the one entry point for every check and build
-pre-commit.ps1  wrapper: task check
-install.ps1     pre-commit, bundle to dist/, copy to MA
-vendor/     other people's code. Do not edit. Not linted.
+third_party/ other people's code. Do not edit. Not linted.
 scratch/    experiments and probes. Ignored by Git and tools.
 dist/       build output. Ignored by Git.
 ```
@@ -161,6 +172,9 @@ internal/cli/        one file per command, reads the files
 internal/rules/      the code rules, one file per language
 internal/bundle/     the bundler: the plugin file and the MA2 XML
 internal/manifest/   the plugin manifest, read and written
+internal/mahome/     where MA2 keeps its data: the version folders
+internal/install/    the install: check the rules, copy the files
+internal/tui/        the picker: the terminal program
 ```
 
 - `main.go` is a wrapper: it hands the arguments and the streams to
@@ -181,6 +195,15 @@ internal/manifest/   the plugin manifest, read and written
   `require`, and writes the MA2 XML next to it.
 - `internal/manifest` holds the plugin manifest. It is JSON, because Go
   cannot run a Lua table. `ma2kit new` writes it, the bundler reads it.
+- `internal/mahome` knows where MA2 keeps its data. The versions are
+  compared as numbers, so 3.10.0 is newer than 3.9.60.
+- `internal/install` is the install itself: check the built file
+  against the code rules, refuse a file name that is not ours, copy
+  the files and return the MA2 commands.
+- `internal/tui` is the picker. The model is a small state machine
+  (plugins, versions, done) and the view draws the list. Every key
+  comes in as `key.String()`, so the switch is on a string and not on
+  the huge key type of the framework.
 
 ### The ID-swap plugins
 
@@ -221,10 +244,14 @@ internal/manifest/   the plugin manifest, read and written
   rebuilds them; only run it when the change is wanted.
 - The session tests load `test/bundles/<file>.lua`, so they run the
   real artifact that MA2 gets, not a rebuild in memory.
-- `install.ps1` runs `pre-commit.ps1`, bundles to `dist/`, checks the
-  bundle again (`luac53 -p` + `ma2kit check-rules`), copies it to MA's
-  plugins folder and prints the MA2 commands as a numbered list. It
-  never touches the clipboard.
+- `ma2kit install <plugin>` finds MA's plugins folder (the newest
+  `gma2_V_*`, or the one `--ma-version` names), builds the plugin,
+  checks the built file against the code rules, copies both files and
+  prints the MA2 commands as a numbered list. It never touches the
+  clipboard. `--dry-run` does everything but the copying.
+- The install is in `internal/install`, not in the CLI, so the TUI of
+  phase 5 can use the same code. `internal/mahome` knows where MA2
+  keeps its data and compares the versions as numbers, not as text.
 
 ### Decisions
 
@@ -232,25 +259,21 @@ internal/manifest/   the plugin manifest, read and written
 - Plugins are developed here and installed by script, never edited in
   MA's own folder.
 - Folder and file names are kebab-case. The tools are Go (the rules,
-  the bundler, and soon the installer), Lua (the plugins) and
-  PowerShell (the install script, for now).
+  the bundler and the installer), Lua (the plugins) and Task (the one
+  entry point).
 
 ### Next
 
-Phase 4 replaces the PowerShell:
+Phases 4 and 5 are done: the install is a Go command, the PowerShell is
+gone, and `ma2kit tui` picks the plugins in a small window.
 
-- `ma2kit install <plugin> [--at N] [--ma-version V] [--dry-run]` finds
-  MA's plugins folder (the newest `gma2_V_*`, or the one asked for),
-  builds the plugin, checks the built file against the code rules,
-  copies it and prints the MA2 commands. `install.ps1` and
-  `pre-commit.ps1` go away.
-- The checks stay with Task: `task install <plugin>` runs `task check`
-  first, then the install. The Go tool never shells out to Task.
-- No Lua syntax check in the install: the end-to-end tests load and run
-  the built bundle, and the golden test proves that a fresh build is
-  the same file. That is stronger than `luac53 -p`.
-- Then phase 5: the Bubble Tea TUI (issue #3). Then phase 6: the
-  release zip on tag `v*`.
+- Phase 6: the release zip on tag `v*`. CI builds every plugin, writes
+  `dist/plugins.json` (name, version, slot, files), zips the installer
+  and the bundles -> GitHub Release. The picker must read
+  `plugins.json` there, next to the bundles, and not
+  `plugins/*/plugin.json` from the repo.
+- Still open from the four requirements: more agent tools (`ma2kit
+  probe` to query MA2, `ma2kit api`/`docs`), and the skills repo.
 
 ## Code conventions
 
