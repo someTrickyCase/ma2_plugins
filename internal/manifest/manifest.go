@@ -12,6 +12,7 @@ import (
 const (
 	pluginFolder = "plugins"
 	fileName     = "plugin.json"
+	ListFile     = "plugins.json"
 	indent       = "  "
 )
 
@@ -101,6 +102,41 @@ func Format(one Manifest) ([]byte, error) {
 	err := encoder.Encode(one)
 	if err != nil {
 		return nil, fmt.Errorf("cannot write the manifest: %w", err)
+	}
+
+	return buffer.Bytes(), nil
+}
+
+type list struct {
+	Plugins []Manifest `json:"plugins"`
+}
+
+func ReadList(path string) ([]Manifest, error) {
+	data, err := readfile.Read(path)
+	if err != nil {
+		return nil, fmt.Errorf("cannot read %q: %w", path, err)
+	}
+
+	var one list
+
+	err = json.Unmarshal(data, &one)
+	if err != nil {
+		return nil, fmt.Errorf("cannot parse %q: %w", path, err)
+	}
+
+	return one.Plugins, nil
+}
+
+func FormatList(all []Manifest) ([]byte, error) {
+	var buffer bytes.Buffer
+
+	encoder := json.NewEncoder(&buffer)
+	encoder.SetEscapeHTML(false)
+	encoder.SetIndent("", indent)
+
+	err := encoder.Encode(list{Plugins: all})
+	if err != nil {
+		return nil, fmt.Errorf("cannot write the list: %w", err)
 	}
 
 	return buffer.Bytes(), nil

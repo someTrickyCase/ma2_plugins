@@ -6,7 +6,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/someTrickyCase/ma2_plugins/internal/mahome"
-	"github.com/someTrickyCase/ma2_plugins/internal/manifest"
 )
 
 const (
@@ -31,13 +30,20 @@ const (
 	stepDone
 )
 
+type Item struct {
+	Key     string
+	Name    string
+	Version string
+	Slot    int
+}
+
 type Selection struct {
-	Plugins []manifest.Entry
+	Items   []Item
 	Version mahome.Version
 }
 
 type Model struct {
-	plugins  []manifest.Entry
+	plugins  []Item
 	versions []mahome.Version
 	chosen   []bool
 	cursor   int
@@ -45,7 +51,7 @@ type Model struct {
 	picked   int
 }
 
-func New(plugins []manifest.Entry, versions []mahome.Version) Model {
+func New(plugins []Item, versions []mahome.Version) Model {
 	return Model{
 		plugins:  plugins,
 		versions: versions,
@@ -86,16 +92,16 @@ func (model Model) Selection() (Selection, error) {
 		return Selection{}, errNoChoice
 	}
 
-	plugins := []manifest.Entry{}
+	plugins := []Item{}
 
-	for index, entry := range model.plugins {
+	for index, item := range model.plugins {
 		if model.chosen[index] {
-			plugins = append(plugins, entry)
+			plugins = append(plugins, item)
 		}
 	}
 
 	return Selection{
-		Plugins: plugins,
+		Items:   plugins,
 		Version: model.versions[model.picked],
 	}, nil
 }

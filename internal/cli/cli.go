@@ -18,6 +18,7 @@ commands:
   check-rules <file>...
   new <plugin-name>
   bundle <plugin-name> [flags]
+  manifest [flags]
   install <plugin-name> [flags]
   tui`
 )
@@ -38,6 +39,8 @@ func Run(args []string, stdout, stderr io.Writer) int {
 		return runNew(args[1:], stdout, stderr)
 	case "bundle":
 		return runBundle(args[1:], stdout, stderr)
+	case "manifest":
+		return runManifest(args[1:], stdout, stderr)
 	case "install":
 		return runInstall(args[1:], stdout, stderr)
 	case "tui":

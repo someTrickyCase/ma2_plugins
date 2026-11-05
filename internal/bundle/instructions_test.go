@@ -23,7 +23,7 @@ func wantInstructions() []string {
 func TestInstructions(t *testing.T) {
 	t.Parallel()
 
-	got, err := bundle.Instructions(answerPlugin([]bundle.Module{}), 0)
+	got, err := bundle.Instructions(answerPlugin([]bundle.Module{}).Manifest, 0)
 	if err != nil {
 		t.Fatalf("Instructions() error = %v", err)
 	}
@@ -44,7 +44,9 @@ func TestInstructions(t *testing.T) {
 func TestInstructionsTakeTheGivenSlot(t *testing.T) {
 	t.Parallel()
 
-	got, err := bundle.Instructions(answerPlugin([]bundle.Module{}), otherSlot)
+	answer := answerPlugin([]bundle.Module{}).Manifest
+
+	got, err := bundle.Instructions(answer, otherSlot)
 	if err != nil {
 		t.Fatalf("Instructions() error = %v", err)
 	}
@@ -68,7 +70,7 @@ func TestInstructionsNeedASlot(t *testing.T) {
 	plugin := answerPlugin([]bundle.Module{})
 	plugin.Manifest.Slot = 0
 
-	_, err := bundle.Instructions(plugin, 0)
+	_, err := bundle.Instructions(plugin.Manifest, 0)
 	if err == nil {
 		t.Fatal("Instructions() error = nil, want an error")
 	}

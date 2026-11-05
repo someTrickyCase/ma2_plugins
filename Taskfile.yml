@@ -111,3 +111,11 @@ tasks:
     cmds:
       - task: check
       - go run -buildvcs=true ./cmd/ma2kit tui {{.CLI_ARGS}}
+
+  dist:
+    desc: Build the distribution bundle with the installer and the plugins
+    cmds:
+      - go build -o dist/bundle/install{{exeExt}} ./cmd/setup
+      - go run -buildvcs=true ./cmd/ma2kit bundle --all --out dist/bundle
+      - go run -buildvcs=true ./cmd/ma2kit manifest --out dist/bundle
+      - ls -la dist/bundle
