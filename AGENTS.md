@@ -257,8 +257,9 @@ list plugins explicitly; update them when adding one.
 
 The distribution task does not clean old files or run checks. Build from
 a fresh output folder before sharing, excluding obsolete executables.
-There is no ZIP or tag-triggered release workflow yet. Go ships as the
-Windows installer, while only Lua/XML go into MA2's plugin folder.
+Release ZIPs are currently staged and published manually; there is no
+tag-triggered release workflow. Go ships as the Windows installer, while
+only Lua/XML go into MA2's plugin folder.
 
 Windows builds use Walk, pinned in go.mod, and the windowsgui subsystem.
 cmd/setup/install.manifest declares Common Controls 6, DPI awareness and
@@ -308,9 +309,9 @@ Keep commands compatible with Windows and Linux.
 - golangci uses default: all, disabling deprecated exhaustruct,
   gomodguard and wsl. revive exported/package-comments are disabled
   because they require comments. Do not add weaker exclusions.
-- depguard permits the standard library, this module, Bubble Tea and
-  lipgloss and Walk. Review new dependencies explicitly. ireturn permits the
-  Bubble Tea model interface required by the framework.
+- depguard permits the standard library, this module, Bubble Tea,
+  lipgloss and Walk. Review new dependencies explicitly. ireturn permits
+  the Bubble Tea model interface required by the framework.
 - gosec G304 remains enabled; readfile.Read uses a named directory and
   base filename. That helper alone does not constrain paths to a package
   root: validate package-supplied filenames before joining paths.
@@ -318,31 +319,51 @@ Keep commands compatible with Windows and Linux.
 
 ## Status and next work
 
-Updated 2026-11-05 from the local working tree; this is not a statement
-that uncommitted work has merged or that remote CI has passed.
+End-of-day state, 2026-11-05: PRs #12, #16, #17 and #18 are merged.
+Installer issues #13, #14 and #15 are completed. No open feature issue
+remains at this checkpoint; check GitHub again when starting new work.
 
-Implemented: the two v0.2.0 plugins; code rules/scaffolding; Go bundler;
-source installer; shared terminal picker; prebuilt install.exe; plugin
-list generation; validation fixes and distribution build. Local task
-check and task dist passed. The standalone --all executable was tested
-outside the source tree against a temporary MA2 folder, including numeric
-version choice and byte-for-byte copies. Go coverage is currently 77.6%.
+The Windows x64 release v0.1.0 is published from merged commit 1cafa95:
+https://github.com/someTrickyCase/ma2_plugins/releases/tag/v0.1.0
+
+Assets are ma2-plugins-v0.1.0-windows-amd64.zip and SHA256SUMS.txt.
+The annotated release tag is fixed to the tested source commit; later
+documentation changes must not move it. Plugin versions remain 0.2.0.
+
+Implemented: the two v0.2.0 plugins; Go rules, scaffolding and bundling;
+source installation; developer terminal picker; native Windows installer;
+per-install slots; persistent result windows; plugin-list generation;
+package validation; and a Windows CI job. No PowerShell scripts remain.
+Local task check/task dist and Linux/Windows CI passed. Go coverage is
+77.6%; the separate GUI exercises are not part of that measurement.
 
 Automated Windows control testing exercised checkbox selection, slot 205,
 newest-version installation, readable persistent results and Close. The
 copied files matched the package and unselected/older targets were intact.
 Screenshots were inspected and a collapsed result field was fixed.
 
+The release was built from a clean tree into a fresh staging folder with
+an explicit file list, excluding the obsolete installer in old output.
+Its eight files are install.exe, plugins.json, four Lua/XML files,
+README.claude.md and THIRD-PARTY-NOTICES.claude.md. The notices include
+runtime dependency licenses and the Go license.
+
+Verification included Windows amd64 GUI PE headers, archive file hashes,
+the extracted executable's --all mode against a temporary MA2 root, and
+byte-for-byte installed files/import commands. GitHub asset sizes and
+SHA256 digests matched local files before publication. Build/release
+artifacts are under ignored dist/releases/; do not treat them as source.
+
 Still unverified: interactive distribution picker operation by Kirk,
 latest installer on real onPC, and hardware consoles. Earlier onPC plugin
 runs verified the ID/conflict behaviour; fake MA2 is not a console test.
 
-Next, in order:
+Possible next work, after Kirk's release test:
 
 1. Refactor the two copy paths into one prepared-files installer with
    shared validation, while retaining source and package readers.
-2. Expand invalid/empty-manifest, cancellation and --all regression tests.
+2. Expand invalid/empty-manifest and failure-path regression tests.
 3. Make package output fresh and reproducible; exclude old build files.
 4. Test install.exe interactively and run the actual onPC import workflow.
-5. Add ZIP packaging and a v*-tag GitHub Release workflow with checks.
+5. Automate release staging, notices, checksums and v*-tag publication.
 6. Later: more agent tools (probe/api/docs) and a separate MA2 skills repo.

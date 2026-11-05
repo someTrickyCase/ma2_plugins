@@ -17,19 +17,26 @@ changes to check the result. Try them on a copy of your show first.
 
 ## Install a built package
 
-The standalone installer is implemented. Automated release ZIPs are still
-planned; the current package is built locally with `task dist`.
+Download the Windows x64 package from the
+[v0.1.0 release](https://github.com/someTrickyCase/ma2_plugins/releases/tag/v0.1.0).
+Extract `ma2-plugins-v0.1.0-windows-amd64.zip` before running the installer.
+`SHA256SUMS.txt` is available alongside the ZIP for integrity checking.
+
+This release supports Windows x64 only. The toolkit release is v0.1.0;
+the bundled plugins have their own versions, currently 0.2.0.
 
 Keep these files together:
 
 ```text
-bundle/
+ma2-plugins-v0.1.0-windows-amd64/
   install.exe
   plugins.json
   k-channel-to-fixture.lua
   k-channel-to-fixture.xml
   k-fixture-to-channel.lua
   k-fixture-to-channel.xml
+  README.claude.md
+  THIRD-PARTY-NOTICES.claude.md
 ```
 
 Double-click `install.exe` to open the native Windows installer, or start
@@ -223,8 +230,15 @@ install commands use `go run -buildvcs=true` for the Git stamp; a plain
 
 `task dist` does not remove old output. Use a fresh package folder before
 sharing a build, and exclude obsolete files such as the former
-`ma2-plugins-setup.exe`. ZIP creation and tag-triggered GitHub Releases
-are not implemented yet.
+`ma2-plugins-setup.exe`. The v0.1.0 release was staged, tested and published
+manually from merged commit `1cafa95`. Its ZIP includes the six runtime
+files above, brief instructions and dependency notices. The extracted
+ZIP was checked for file integrity and tested with `--all` against a
+temporary MA2 folder. Uploaded asset digests matched the local files.
+
+`task dist` builds the six runtime files; it does not create the release
+ZIP, instructions, notices or checksums. Automated staging, ZIP creation
+and tag-triggered GitHub Releases remain future improvements.
 
 ## File structure
 
