@@ -1,7 +1,7 @@
 # ma2_plugins
 
 [![CI](https://github.com/someTrickyCase/ma2_plugins/actions/workflows/ci.yml/badge.svg)](https://github.com/someTrickyCase/ma2_plugins/actions/workflows/ci.yml)
-[![Go coverage](https://img.shields.io/badge/go%20coverage-92.6%25-brightgreen)](https://github.com/someTrickyCase/ma2_plugins)
+[![Go coverage](https://img.shields.io/badge/go%20coverage-90.2%25-brightgreen)](https://github.com/someTrickyCase/ma2_plugins)
 
 Lua plugins for grandMA2, written and tested on Windows, then delivered
 to MA2 with one command.
@@ -36,8 +36,33 @@ task --version     # 3.54.0
 
 ## 2. Install a plugin
 
+The easy way, with the picker:
+
 ```powershell
 cd C:\k_ma2programming
+task tui
+```
+
+It shows the plugins and the MA2 versions, and installs what you pick:
+
+```
+MA2 plugin installer
+
+Plugins
+
+> [x] Channel to Fixture  0.2.0  slot 101
+  [ ] Fixture to Channel  0.2.0  slot 102
+
+space: pick   enter: next   esc: quit
+```
+
+**space** picks a plugin, **enter** goes on to the versions, **esc** goes
+back. The MA2 commands come after the picker closes, so you can copy
+them.
+
+One plugin at a time, without the picker:
+
+```powershell
 task install -- channel-to-fixture --dry-run   # dry run, copies nothing
 task install -- channel-to-fixture             # real install
 ```
@@ -209,6 +234,7 @@ internal/scaffold/   builds a new plugin from a template
 internal/readfile/   reads a file by name, without leaving its folder
 internal/mahome/     where MA2 keeps its data: the version folders
 internal/install/    the install: check the rules, copy the files
+internal/tui/        the picker: a small terminal program
 ```
 
 The code rules are simple on purpose: **only printable ASCII, and no
@@ -231,6 +257,13 @@ prints the commands to load it into MA2.
 
 ```
 ma2kit install channel-to-fixture --dry-run
+```
+
+The picker is the same thing with a window around it: Bubble Tea asks
+for the plugin and the version, then the installer does the work.
+
+```
+ma2kit tui
 ```
 
 ## For developers

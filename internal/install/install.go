@@ -29,6 +29,14 @@ type Request struct {
 	DryRun bool
 }
 
+type Batch struct {
+	Root   string
+	Folder string
+	Slot   int
+	DryRun bool
+	Stamp  bundle.Stamp
+}
+
 type Result struct {
 	Folder       string
 	Files        []string
@@ -80,6 +88,37 @@ func Do(req Request) (Result, error) {
 		Instructions: instructions,
 		DryRun:       req.DryRun,
 	}, nil
+}
+
+func All(batch Batch, folders []string) ([]Result, error) {
+	results := []Result{}
+
+	for _, folder := range folders {
+		result, err := one(batch, folder)
+		if err != nil {
+			return nil, err
+		}
+
+		results = append(results, result)
+	}
+
+	return results, nil
+}
+
+func one(batch Batch, folder string) (Result, error) {
+	plugin, err := bundle.Collect(
+		folder, bundle.FileReader(batch.Root), batch.Stamp)
+	if err != nil {
+		return Result{}, fmt.Errorf(
+			"cannot read the plugin %q: %w", folder, err)
+	}
+
+	return Do(Request{
+		Plugin: plugin,
+		Slot:   batch.Slot,
+		Folder: batch.Folder,
+		DryRun: batch.DryRun,
+	})
 }
 
 func pathsOf(targets []target) []string {

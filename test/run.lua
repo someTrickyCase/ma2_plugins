@@ -1,4 +1,4 @@
-package.path = "./lib/?.lua;./?.lua;./vendor/?.lua;" .. package.path
+package.path = "./lib/?.lua;./?.lua;./third_party/?.lua;" .. package.path
 
 local lu = require("luaunit")
 
