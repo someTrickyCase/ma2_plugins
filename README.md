@@ -123,6 +123,9 @@ Channel to Fixture 0.2.0 (e8482d2, 2026-10-25)
 `e8482d2` is the Git commit it was built from. If it says
 `e8482d2-dirty`, it was built from changes that were not committed yet.
 
+Build it with `task install` or `task bundle`: a plain `go run` leaves
+the commit out of the stamp, and it then says `dev`.
+
 ## 4. Update to a new version
 
 MA2 keeps **its own copy** of a plugin inside the show. Copying new files
