@@ -27,6 +27,7 @@ type step int
 const (
 	stepPlugins step = iota
 	stepVersions
+	stepSlot
 	stepDone
 )
 
@@ -49,6 +50,8 @@ type Model struct {
 	cursor   int
 	step     step
 	picked   int
+	slotText string
+	problem  string
 }
 
 func New(plugins []Item, versions []mahome.Version) Model {
@@ -59,6 +62,8 @@ func New(plugins []Item, versions []mahome.Version) Model {
 		cursor:   0,
 		step:     stepPlugins,
 		picked:   0,
+		slotText: "",
+		problem:  "",
 	}
 }
 
@@ -78,6 +83,10 @@ func (model Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 
 	if model.step == stepVersions {
 		return model.versionKey(key)
+	}
+
+	if model.step == stepSlot {
+		return model.slotKey(key)
 	}
 
 	return model, nil
@@ -116,6 +125,16 @@ func (model Model) pluginKey(key tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return model.move(moveDown), nil
 	case keySpace:
 		return model.toggle(), nil
+	case "s":
+		if len(model.plugins) == 0 {
+			return model, nil
+		}
+
+		model.step = stepSlot
+		model.slotText = ""
+		model.problem = ""
+
+		return model, nil
 	case keyEnter:
 		return model.next(), nil
 	default:
@@ -178,10 +197,29 @@ func (model Model) next() Model {
 		return model
 	}
 
+	err := ValidateItems(model.selected())
+	if err != nil {
+		model.problem = err.Error()
+
+		return model
+	}
+
 	model.step = stepVersions
 	model.cursor = 0
 
 	return model
+}
+
+func (model Model) selected() []Item {
+	items := []Item{}
+
+	for index, item := range model.plugins {
+		if model.chosen[index] {
+			items = append(items, item)
+		}
+	}
+
+	return items
 }
 
 func (model Model) back() Model {

@@ -27,6 +27,7 @@ const (
 	fileMode      = 0o600
 	boxFlag       = "--box"
 	maRootFlag    = "--ma-root"
+	chosenSlot    = 205
 )
 
 var errNoVersion = errors.New("no MA2 version")
@@ -176,5 +177,25 @@ func TestRunFailsWithoutAMaFolder(t *testing.T) {
 
 	if code == 0 {
 		t.Error("Run() = 0, want an error")
+	}
+}
+
+func TestRunUsesTheChosenSlot(t *testing.T) {
+	t.Parallel()
+
+	boxFolder := writeBox(t)
+	maRoot := writeMaFolder(t)
+
+	var stdout, stderr bytes.Buffer
+
+	items := []tui.Item{{
+		Key: answerFile, Name: answerName, Version: answerVersion,
+		Slot: chosenSlot,
+	}}
+
+	code := setup.Run([]string{boxFlag, boxFolder, maRootFlag, maRoot},
+		&stdout, &stderr, fakePicker(items))
+	if code != 0 || !strings.Contains(stdout.String(), "At Plugin 205") {
+		t.Fatalf("Run() = %d: %s %s", code, stdout.String(), stderr.String())
 	}
 }

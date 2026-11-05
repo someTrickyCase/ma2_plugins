@@ -101,6 +101,11 @@ func (one Setup) Install() int {
 
 	plugins := pickedOf(one.Box, selection.Items)
 
+	err = tui.ValidateItems(selection.Items)
+	if err != nil {
+		return fail(one.Err, err)
+	}
+
 	return one.copySelected(selection.Version, plugins)
 }
 
@@ -108,6 +113,11 @@ func (one Setup) copySelected(
 	version mahome.Version,
 	plugins []manifest.Manifest,
 ) int {
+	err := tui.ValidateItems(itemsOf(plugins))
+	if err != nil {
+		return fail(one.Err, err)
+	}
+
 	target := mahome.PluginsFolder(one.Root, version)
 
 	lines, err := box.Commands(plugins)
@@ -150,6 +160,7 @@ func pickedOf(one box.Box, items []tui.Item) []manifest.Manifest {
 	for _, item := range items {
 		for _, plugin := range one.Plugins {
 			if plugin.File == item.Key {
+				plugin.Slot = item.Slot
 				picked = append(picked, plugin)
 			}
 		}

@@ -43,7 +43,7 @@ func runTUI(args []string, stdout, stderr io.Writer) int {
 	}
 
 	one := request{
-		folders: foldersOf(selection),
+		folders: []string{},
 		folder:  mahome.PluginsFolder(*maRoot, selection.Version),
 		slot:    0,
 		dryRun:  *dryRun,
@@ -51,7 +51,26 @@ func runTUI(args []string, stdout, stderr io.Writer) int {
 		stderr:  stderr,
 	}
 
-	return one.run()
+	return installSelection(one, selection.Items)
+}
+
+func installSelection(one request, items []tui.Item) int {
+	err := tui.ValidateItems(items)
+	if err != nil {
+		return showUsage(one.stderr, err.Error())
+	}
+
+	for _, item := range items {
+		one.folders = []string{item.Key}
+		one.slot = item.Slot
+
+		code := one.run()
+		if code != ExitOK {
+			return code
+		}
+	}
+
+	return ExitOK
 }
 
 func itemsOf(entries []manifest.Entry) []tui.Item {
@@ -67,14 +86,4 @@ func itemsOf(entries []manifest.Entry) []tui.Item {
 	}
 
 	return items
-}
-
-func foldersOf(selection tui.Selection) []string {
-	folders := make([]string, 0, len(selection.Items))
-
-	for _, item := range selection.Items {
-		folders = append(folders, item.Key)
-	}
-
-	return folders
 }

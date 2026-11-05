@@ -229,6 +229,11 @@ colon or dot. Existing corresponding plugin files can be overwritten.
 XML is copied without semantic validation. Filesystem write failures may
 still leave partial output; there is no rollback.
 
+The shared terminal picker supports S to edit a per-plugin slot. Validate
+positive, distinct selected slots before installation. Both source and
+package workflows use the edited slots in printed import commands.
+Choices apply to the current install only; do not persist them (Kirk).
+
 The source and prebuilt paths still have separate copy implementations.
 Do not describe them as a unified installer. A shared prepared-files
 installation service is the proposed next refactor; it is not implemented.
@@ -304,7 +309,7 @@ source installer; shared terminal picker; prebuilt install.exe; plugin
 list generation; validation fixes and distribution build. Local task
 check and task dist passed. The standalone --all executable was tested
 outside the source tree against a temporary MA2 folder, including numeric
-version choice and byte-for-byte copies. Go coverage is currently 87.0%.
+version choice and byte-for-byte copies. Go coverage is currently 86.4%.
 
 Still unverified: interactive distribution picker operation by Kirk,
 latest installer on real onPC, and hardware consoles. Earlier onPC plugin
