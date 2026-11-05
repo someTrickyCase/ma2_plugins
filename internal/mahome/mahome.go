@@ -3,6 +3,7 @@ package mahome
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"slices"
@@ -67,6 +68,10 @@ func ParseVersion(text string) (Version, error) {
 func Versions(root string) ([]Version, error) {
 	entries, err := os.ReadDir(root)
 	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil, fmt.Errorf("%w in %q", errNoVersion, root)
+		}
+
 		return nil, fmt.Errorf("%w %q: %w", errReadVersions, root, err)
 	}
 
