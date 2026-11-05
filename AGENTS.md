@@ -217,6 +217,9 @@ cmd/setup -> setup -> box -> plugins.json and prebuilt Lua/XML
 The Windows executable is named install.exe. The default package folder
 is its own directory, not the shell's current directory. --box overrides
 that location; --all skips the picker and uses the newest MA2 version.
+Interactive setup presents a result screen after success or failure and
+waits for explicit close. --all does not wait. setup.Interactive accepts
+a result presenter; tui.Result implements the terminal result screen.
 It copies files and prints commands; it does not control MA2 or inspect
 occupied show slots. End users need no development toolchain.
 
@@ -309,7 +312,7 @@ source installer; shared terminal picker; prebuilt install.exe; plugin
 list generation; validation fixes and distribution build. Local task
 check and task dist passed. The standalone --all executable was tested
 outside the source tree against a temporary MA2 folder, including numeric
-version choice and byte-for-byte copies. Go coverage is currently 86.4%.
+version choice and byte-for-byte copies. Go coverage is currently 86.2%.
 
 Still unverified: interactive distribution picker operation by Kirk,
 latest installer on real onPC, and hardware consoles. Earlier onPC plugin
