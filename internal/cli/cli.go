@@ -18,7 +18,8 @@ commands:
   check-rules <file>...
   new <plugin-name>
   bundle <plugin-name> [flags]
-  install <plugin-name> [flags]`
+  install <plugin-name> [flags]
+  tui`
 )
 
 func Run(args []string, stdout, stderr io.Writer) int {
@@ -39,6 +40,8 @@ func Run(args []string, stdout, stderr io.Writer) int {
 		return runBundle(args[1:], stdout, stderr)
 	case "install":
 		return runInstall(args[1:], stdout, stderr)
+	case "tui":
+		return runTUI(args[1:], stdout, stderr)
 	default:
 		return showUsage(stderr, fmt.Sprintf("unknown command %q", args[0]))
 	}

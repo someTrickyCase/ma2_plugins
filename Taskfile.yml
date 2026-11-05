@@ -105,3 +105,9 @@ tasks:
     cmds:
       - task: check
       - go run -buildvcs=true ./cmd/ma2kit install {{.CLI_ARGS}}
+
+  tui:
+    desc: Run every check, then pick the plugins in a small window
+    cmds:
+      - task: check
+      - go run -buildvcs=true ./cmd/ma2kit tui {{.CLI_ARGS}}

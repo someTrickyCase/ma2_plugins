@@ -65,14 +65,26 @@ func installFailed(stderr io.Writer, err error) int {
 	return showUsage(stderr, err.Error())
 }
 
-func printInstall(stdout io.Writer, result install.Result) {
-	if result.DryRun {
-		_, _ = fmt.Fprintf(
-			stdout, "Dry run: nothing was copied to %s\n", result.Folder)
-	} else {
-		_, _ = fmt.Fprintf(stdout, "Installed to %s\n", result.Folder)
-	}
+type target struct {
+	folder string
+	dryRun bool
+}
 
+func printInstall(stdout io.Writer, result install.Result) {
+	printTarget(stdout, target{folder: result.Folder, dryRun: result.DryRun})
+	printCommands(stdout, result)
+}
+
+func printTarget(stdout io.Writer, one target) {
+	if one.dryRun {
+		_, _ = fmt.Fprintf(
+			stdout, "Dry run: nothing was copied to %s\n", one.folder)
+	} else {
+		_, _ = fmt.Fprintf(stdout, "Installed to %s\n", one.folder)
+	}
+}
+
+func printCommands(stdout io.Writer, result install.Result) {
 	for _, path := range result.Files {
 		_, _ = fmt.Fprintln(stdout, path)
 	}
