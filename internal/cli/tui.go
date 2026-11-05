@@ -4,19 +4,10 @@ import (
 	"flag"
 	"io"
 
-	"github.com/someTrickyCase/ma2_plugins/internal/bundle"
-	"github.com/someTrickyCase/ma2_plugins/internal/install"
 	"github.com/someTrickyCase/ma2_plugins/internal/mahome"
 	"github.com/someTrickyCase/ma2_plugins/internal/manifest"
 	"github.com/someTrickyCase/ma2_plugins/internal/tui"
 )
-
-type picker struct {
-	root   string
-	dryRun bool
-	stdout io.Writer
-	stderr io.Writer
-}
 
 func runTUI(args []string, stdout, stderr io.Writer) int {
 	flags := flag.NewFlagSet("tui", flag.ContinueOnError)
@@ -49,40 +40,24 @@ func runTUI(args []string, stdout, stderr io.Writer) int {
 		return showUsage(stderr, err.Error())
 	}
 
-	one := picker{
-		root:   *maRoot,
-		dryRun: *dryRun,
-		stdout: stdout,
-		stderr: stderr,
+	one := request{
+		folders: foldersOf(selection),
+		folder:  mahome.PluginsFolder(*maRoot, selection.Version),
+		slot:    0,
+		dryRun:  *dryRun,
+		stdout:  stdout,
+		stderr:  stderr,
 	}
 
-	return one.install(selection)
+	return one.run()
 }
 
-func (one picker) install(selection tui.Selection) int {
-	folder := mahome.PluginsFolder(one.root, selection.Version)
-
-	printTarget(one.stdout, target{folder: folder, dryRun: one.dryRun})
+func foldersOf(selection tui.Selection) []string {
+	folders := make([]string, 0, len(selection.Plugins))
 
 	for _, entry := range selection.Plugins {
-		plugin, err := bundle.Collect(
-			entry.Folder, bundle.FileReader("."), stampOf("", ""))
-		if err != nil {
-			return showUsage(one.stderr, err.Error())
-		}
-
-		result, err := install.Do(install.Request{
-			Plugin: plugin,
-			Slot:   0,
-			Folder: folder,
-			DryRun: one.dryRun,
-		})
-		if err != nil {
-			return showUsage(one.stderr, err.Error())
-		}
-
-		printCommands(one.stdout, result)
+		folders = append(folders, entry.Folder)
 	}
 
-	return ExitOK
+	return folders
 }

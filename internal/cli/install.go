@@ -6,10 +6,18 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/someTrickyCase/ma2_plugins/internal/bundle"
 	"github.com/someTrickyCase/ma2_plugins/internal/install"
 	"github.com/someTrickyCase/ma2_plugins/internal/mahome"
 )
+
+type request struct {
+	folders []string
+	folder  string
+	slot    int
+	dryRun  bool
+	stdout  io.Writer
+	stderr  io.Writer
+}
 
 func runInstall(args []string, stdout, stderr io.Writer) int {
 	if len(args) == 0 {
@@ -29,28 +37,40 @@ func runInstall(args []string, stdout, stderr io.Writer) int {
 		return ExitUsage
 	}
 
-	plugin, err := bundle.Collect(
-		args[0], bundle.FileReader("."), stampOf("", ""))
-	if err != nil {
-		return showUsage(stderr, err.Error())
-	}
-
 	version, err := mahome.Pick(*maRoot, *maVersion)
 	if err != nil {
 		return showUsage(stderr, err.Error())
 	}
 
-	result, err := install.Do(install.Request{
-		Plugin: plugin,
-		Slot:   *slot,
-		Folder: mahome.PluginsFolder(*maRoot, version),
-		DryRun: *dryRun,
-	})
-	if err != nil {
-		return installFailed(stderr, err)
+	one := request{
+		folders: []string{args[0]},
+		folder:  mahome.PluginsFolder(*maRoot, version),
+		slot:    *slot,
+		dryRun:  *dryRun,
+		stdout:  stdout,
+		stderr:  stderr,
 	}
 
-	printInstall(stdout, result)
+	return one.run()
+}
+
+func (one request) run() int {
+	results, err := install.All(install.Batch{
+		Root:   ".",
+		Folder: one.folder,
+		Slot:   one.slot,
+		DryRun: one.dryRun,
+		Stamp:  stampOf("", ""),
+	}, one.folders)
+	if err != nil {
+		return installFailed(one.stderr, err)
+	}
+
+	printTarget(one.stdout, target{folder: one.folder, dryRun: one.dryRun})
+
+	for _, result := range results {
+		printCommands(one.stdout, result)
+	}
 
 	return ExitOK
 }
@@ -68,11 +88,6 @@ func installFailed(stderr io.Writer, err error) int {
 type target struct {
 	folder string
 	dryRun bool
-}
-
-func printInstall(stdout io.Writer, result install.Result) {
-	printTarget(stdout, target{folder: result.Folder, dryRun: result.DryRun})
-	printCommands(stdout, result)
 }
 
 func printTarget(stdout io.Writer, one target) {

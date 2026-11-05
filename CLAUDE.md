@@ -52,10 +52,12 @@ All commands go through Task. `task` alone lists them.
 | `task bundle`                          | build every plugin into `dist/`     |
 | `task golden`                          | rebuild the committed test bundles  |
 | `task install -- <plugin>`             | check, then install into MA2        |
+| `task tui`                             | check, then pick the plugins        |
 | `ma2kit check-rules <file>...`         | report violations, exit 1 on any    |
 | `ma2kit new <plugin-name>`             | scaffold a new plugin               |
 | `ma2kit bundle <name> --out <dir>`     | build one plugin, print commands    |
 | `ma2kit install <name> [--dry-run]`    | install one plugin into MA2         |
+| `ma2kit tui [--dry-run]`               | pick the plugins, then install      |
 | `lua53 test/run.lua <files>`           | run some Lua test files             |
 | `go test ./internal/<pkg>`             | run one Go package's tests          |
 
@@ -88,8 +90,11 @@ same commands. Keep the Taskfile working on Windows and Linux.
   excluded per file: gosec `G304` is on everywhere, and the code reads
   files through `internal/readfile`, which cannot leave the folder it
   was given.
-- `depguard` allows only the Go standard library and this module. A new
+- `depguard` allows only the Go standard library, this module and
+  Bubble Tea with lipgloss (the terminal UI of the picker). A new
   dependency must be added to `.golangci.yml` on purpose.
+- `ireturn` allows the Bubble Tea model, because the framework asks
+  the model to return its own interface.
 - Tests follow Go's convention: `x_test.go` next to `x.go`, in the
   external `x_test` package. Table tests for many cases of one function,
   small `expect...` helpers instead of repeated checks.
@@ -125,6 +130,7 @@ internal/   Go packages, each with its _test.go files
   buildinfo/ version and commit stamp
   mahome/   where MA2 keeps its data: the version folders
   install/  the install: check the rules, copy the files
+  tui/      the picker: a small terminal program (Bubble Tea)
 .github/    CI workflow
 Taskfile.yml    the one entry point for every check and build
 third_party/ other people's code. Do not edit. Not linted.
@@ -168,6 +174,7 @@ internal/bundle/     the bundler: the plugin file and the MA2 XML
 internal/manifest/   the plugin manifest, read and written
 internal/mahome/     where MA2 keeps its data: the version folders
 internal/install/    the install: check the rules, copy the files
+internal/tui/        the picker: the terminal program
 ```
 
 - `main.go` is a wrapper: it hands the arguments and the streams to
@@ -193,6 +200,10 @@ internal/install/    the install: check the rules, copy the files
 - `internal/install` is the install itself: check the built file
   against the code rules, refuse a file name that is not ours, copy
   the files and return the MA2 commands.
+- `internal/tui` is the picker. The model is a small state machine
+  (plugins, versions, done) and the view draws the list. Every key
+  comes in as `key.String()`, so the switch is on a string and not on
+  the huge key type of the framework.
 
 ### The ID-swap plugins
 
@@ -253,16 +264,14 @@ internal/install/    the install: check the rules, copy the files
 
 ### Next
 
-Phase 4 is done: the install is a Go command, the PowerShell is gone.
+Phases 4 and 5 are done: the install is a Go command, the PowerShell is
+gone, and `ma2kit tui` picks the plugins in a small window.
 
-- Phase 5: the Bubble Tea TUI (issue #3). It reads the plugin list
-  (`plugins/*/plugin.json` in the repo, `plugins.json` in a release
-  zip), lets you pick the plugin(s) and the MA2 version folder, then
-  copies the files and prints the commands. The plain `ma2kit install`
-  stays as the scripted path, and the TUI calls `internal/install`.
 - Phase 6: the release zip on tag `v*`. CI builds every plugin, writes
   `dist/plugins.json` (name, version, slot, files), zips the installer
-  and the bundles -> GitHub Release.
+  and the bundles -> GitHub Release. The picker must read
+  `plugins.json` there, next to the bundles, and not
+  `plugins/*/plugin.json` from the repo.
 - Still open from the four requirements: more agent tools (`ma2kit
   probe` to query MA2, `ma2kit api`/`docs`), and the skills repo.
 

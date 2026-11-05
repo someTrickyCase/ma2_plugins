@@ -26,7 +26,20 @@ const (
 	doError       = "Do() error = %v"
 	doFails       = "Do() error = nil, want an error"
 	folderFull    = "the folder has files, want nothing"
+	pluginFolder  = "plugins"
+	commitStamp   = "abc1234"
+	dateStamp     = "2026-10-24"
+	luaSuffix     = ".lua"
+	xmlSuffix     = ".xml"
 )
+
+const answerManifest = `{
+  "name": "Answer",
+  "file": "k-answer",
+  "version": "1.2.3",
+  "slot": 101
+}
+`
 
 func answerPlugin(main string) bundle.Plugin {
 	return bundle.Plugin{
@@ -38,7 +51,7 @@ func answerPlugin(main string) bundle.Plugin {
 		},
 		Main:    main,
 		Modules: []bundle.Module{},
-		Stamp:   bundle.Stamp{Commit: "abc1234", Date: "2026-10-24"},
+		Stamp:   bundle.Stamp{Commit: commitStamp, Date: dateStamp},
 	}
 }
 
@@ -89,7 +102,9 @@ func TestDoWritesBothFiles(t *testing.T) {
 		t.Errorf("Folder = %q, want %q", got.Folder, folder)
 	}
 
-	for _, name := range []string{answerFile + ".lua", answerFile + ".xml"} {
+	names := []string{answerFile + luaSuffix, answerFile + xmlSuffix}
+
+	for _, name := range names {
 		_, err := os.Stat(filepath.Join(folder, name))
 		if err != nil {
 			t.Errorf("missing %q: %v", name, err)
@@ -112,7 +127,7 @@ func TestDoCreatesTheTargetFolder(t *testing.T) {
 		t.Fatalf(doError, err)
 	}
 
-	_, err = os.Stat(filepath.Join(folder, answerFile+".lua"))
+	_, err = os.Stat(filepath.Join(folder, answerFile+luaSuffix))
 	if err != nil {
 		t.Errorf("missing the built file: %v", err)
 	}
@@ -258,6 +273,79 @@ func TestDoFailsWithoutASlot(t *testing.T) {
 	}
 
 	if len(writtenFiles(folder)) != 0 {
+		t.Error(folderFull)
+	}
+}
+
+func writePlugin(t *testing.T, root string, name string) {
+	t.Helper()
+
+	folder := filepath.Join(root, pluginFolder, name)
+
+	err := os.MkdirAll(folder, dirMode)
+	if err != nil {
+		t.Fatalf("cannot create %q: %v", folder, err)
+	}
+
+	err = os.WriteFile(
+		filepath.Join(folder, "plugin.json"), []byte(answerManifest), fileMode)
+	if err != nil {
+		t.Fatalf("cannot write the manifest: %v", err)
+	}
+
+	err = os.WriteFile(
+		filepath.Join(folder, "main.lua"), []byte(cleanMain), fileMode)
+	if err != nil {
+		t.Fatalf("cannot write the entry point: %v", err)
+	}
+}
+
+func TestAllInstallsEveryPlugin(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	writePlugin(t, root, answerFile)
+
+	target := targetFolder(t)
+
+	got, err := install.All(install.Batch{
+		Root:   root,
+		Folder: target,
+		Slot:   0,
+		DryRun: false,
+		Stamp:  bundle.Stamp{Commit: commitStamp, Date: dateStamp},
+	}, []string{answerFile})
+	if err != nil {
+		t.Fatalf("All() error = %v", err)
+	}
+
+	if len(got) != 1 {
+		t.Fatalf("All() = %d results, want 1", len(got))
+	}
+
+	_, err = os.Stat(filepath.Join(target, answerFile+luaSuffix))
+	if err != nil {
+		t.Errorf("missing the built file: %v", err)
+	}
+}
+
+func TestAllFailsOnAMissingPlugin(t *testing.T) {
+	t.Parallel()
+
+	target := targetFolder(t)
+
+	_, err := install.All(install.Batch{
+		Root:   t.TempDir(),
+		Folder: target,
+		Slot:   0,
+		DryRun: false,
+		Stamp:  bundle.Stamp{Commit: commitStamp, Date: dateStamp},
+	}, []string{"nothing"})
+	if err == nil {
+		t.Error(doFails)
+	}
+
+	if len(writtenFiles(target)) != 0 {
 		t.Error(folderFull)
 	}
 }
