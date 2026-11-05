@@ -17,6 +17,15 @@ linters:
           allow:
             - $gostd
             - github.com/someTrickyCase/ma2_plugins
+            - github.com/charmbracelet/bubbletea
+            - github.com/charmbracelet/lipgloss
+    ireturn:
+      allow:
+        - anon
+        - error
+        - empty
+        - stdlib
+        - github.com/charmbracelet/bubbletea
     revive:
       enable-all-rules: true
       rules:
