@@ -139,7 +139,8 @@ internal/
   install/         source-build installation and shared validation
   box/             prebuilt package loading, validation and copying
   setup/           distribution installer arguments and workflow
-  tui/             shared Bubble Tea model, rendering and runner
+  tui/             developer terminal picker and terminal results
+  native/          Windows Walk controls and pure selection validation
 
 third_party/       dependency code, not project code
 .github/workflows/ CI configuration
@@ -211,7 +212,7 @@ at install time, although Task's developer checks require the Lua tools.
 
 ```text
 cmd/setup -> setup -> box -> plugins.json and prebuilt Lua/XML
-                 tui -> chosen items and MA2 version
+                 native (Windows) / tui (Linux/macOS) -> selection
 ```
 
 The Windows executable is named install.exe. The default package folder
@@ -219,7 +220,9 @@ is its own directory, not the shell's current directory. --box overrides
 that location; --all skips the picker and uses the newest MA2 version.
 Interactive setup presents a result screen after success or failure and
 waits for explicit close. --all does not wait. setup.Interactive accepts
-a result presenter; tui.Result implements the terminal result screen.
+a result presenter; native.ShowResult uses a selectable read-only text
+box with Close, and tui.Result supplies the terminal fallback. Cancel
+exits cleanly without showing an error result or installing files.
 It copies files and prints commands; it does not control MA2 or inspect
 occupied show slots. End users need no development toolchain.
 
@@ -232,7 +235,9 @@ colon or dot. Existing corresponding plugin files can be overwritten.
 XML is copied without semantic validation. Filesystem write failures may
 still leave partial output; there is no rollback.
 
-The shared terminal picker supports S to edit a per-plugin slot. Validate
+The Windows installer uses checkboxes, editable slot fields, a version
+dropdown and Install/Cancel buttons. The developer terminal picker
+supports S to edit a per-plugin slot. Validate
 positive, distinct selected slots before installation. Both source and
 package workflows use the edited slots in printed import commands.
 Choices apply to the current install only; do not persist them (Kirk).
@@ -255,6 +260,14 @@ a fresh output folder before sharing, excluding obsolete executables.
 There is no ZIP or tag-triggered release workflow yet. Go ships as the
 Windows installer, while only Lua/XML go into MA2's plugin folder.
 
+Windows builds use Walk, pinned in go.mod, and the windowsgui subsystem.
+cmd/setup/install.manifest declares Common Controls 6, DPI awareness and
+asInvoker privileges. task setup:resources uses pinned rsrc v0.10.2 to
+generate resource_windows_amd64.syso; commit it with manifest changes.
+The current native binary/resource targets Windows amd64. No extra DLL
+or manifest is required beside install.exe. Keep GUI work on the locked
+OS thread. Linux/macOS entry points retain the terminal fallback.
+
 ## Tests and CI
 
 - Lua 5.3 tests use LuaUnit; files return tables of test... functions.
@@ -275,7 +288,8 @@ Windows installer, while only Lua/XML go into MA2's plugin folder.
 ci.yml runs on pull requests and pushes to main on Ubuntu 24.04. Its Lua
 job runs task lua; its Go job runs task go, task rules and task coverage.
 Both use Task, but the parallel CI ordering differs from task check's
-local sequential ordering. No distribution build or release job exists.
+local sequential ordering. A Windows 2025 job runs strict lint, Go tests
+and task dist, covering Windows-only code. No release workflow exists.
 Keep commands compatible with Windows and Linux.
 
 ## Code conventions
@@ -295,7 +309,7 @@ Keep commands compatible with Windows and Linux.
   gomodguard and wsl. revive exported/package-comments are disabled
   because they require comments. Do not add weaker exclusions.
 - depguard permits the standard library, this module, Bubble Tea and
-  lipgloss. Review new dependencies explicitly. ireturn permits the
+  lipgloss and Walk. Review new dependencies explicitly. ireturn permits the
   Bubble Tea model interface required by the framework.
 - gosec G304 remains enabled; readfile.Read uses a named directory and
   base filename. That helper alone does not constrain paths to a package
@@ -312,7 +326,12 @@ source installer; shared terminal picker; prebuilt install.exe; plugin
 list generation; validation fixes and distribution build. Local task
 check and task dist passed. The standalone --all executable was tested
 outside the source tree against a temporary MA2 folder, including numeric
-version choice and byte-for-byte copies. Go coverage is currently 86.2%.
+version choice and byte-for-byte copies. Go coverage is currently 77.6%.
+
+Automated Windows control testing exercised checkbox selection, slot 205,
+newest-version installation, readable persistent results and Close. The
+copied files matched the package and unselected/older targets were intact.
+Screenshots were inspected and a collapsed result field was fixed.
 
 Still unverified: interactive distribution picker operation by Kirk,
 latest installer on real onPC, and hardware consoles. Earlier onPC plugin

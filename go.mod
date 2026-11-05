@@ -12,6 +12,7 @@ require (
 	github.com/charmbracelet/x/term v0.2.1
 	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f
 	github.com/lucasb-eyer/go-colorful v1.2.0
+	github.com/lxn/walk v0.0.0-20210112085537-c389da54e794
 	github.com/mattn/go-isatty v0.0.20
 	github.com/mattn/go-localereader v0.0.1
 	github.com/mattn/go-runewidth v0.0.16
@@ -22,4 +23,9 @@ require (
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e
 	golang.org/x/sys v0.36.0
 	golang.org/x/text v0.3.8
+)
+
+require (
+	github.com/lxn/win v0.0.0-20210218163916-a377121e959e // indirect
+	gopkg.in/Knetic/govaluate.v3 v3.0.0 // indirect
 )

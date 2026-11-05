@@ -1,7 +1,7 @@
 # ma2_plugins
 
 [![CI](https://github.com/someTrickyCase/ma2_plugins/actions/workflows/ci.yml/badge.svg)](https://github.com/someTrickyCase/ma2_plugins/actions/workflows/ci.yml)
-[![Go coverage](https://img.shields.io/badge/go%20coverage-86.2%25-brightgreen)](https://github.com/someTrickyCase/ma2_plugins)
+[![Go coverage](https://img.shields.io/badge/go%20coverage-77.6%25-brightgreen)](https://github.com/someTrickyCase/ma2_plugins)
 
 Lua plugins for grandMA2, with Go tools for developing, testing, building
 and installing them. Developed on Windows 11 with MA2 onPC 3.9.60.
@@ -32,22 +32,25 @@ bundle/
   k-fixture-to-channel.xml
 ```
 
-Open PowerShell in that folder and run:
+Double-click `install.exe` to open the native Windows installer, or start
+it from PowerShell with `.\install.exe`.
 
-```powershell
-.\install.exe
-```
+Select plugin checkboxes, edit their slot fields, choose the MA2 version
+and click Install. Slots must be positive whole numbers and selected
+plugins must use different slots. Choices apply to this installation
+only; packaged defaults are not changed or saved. Cancel closes without
+installing.
 
-Use the arrow keys to move, Space to select plugins and Enter to continue.
-Press S on a plugin to enter its pool slot. Slots must be positive whole
-numbers and selected plugins must use different slots. Changes apply to
-this installation only; packaged defaults are not changed or saved.
-Choose an MA2 version and press Enter to install. Esc goes back from the
-version list or exits from the plugin list. The installer then prints
-MA2 import commands. The result stays open until Enter or a quit key is
-pressed, so you can read and copy the commands. Errors stay visible too.
-`--all` remains noninteractive and exits after printing its result.
-The installer does not import or run plugins inside your show.
+After installation, a result window shows the MA2 import commands in a
+read-only, selectable text box. Read and copy them, then click Close.
+Errors stay visible in the same kind of window. The installer does not
+import or run plugins inside your show.
+
+`--all` remains noninteractive and exits after writing its result. When
+using it from scripts, capture stdout/stderr explicitly: the Windows
+installer is a GUI executable and does not open a console window.
+Linux/macOS builds retain a terminal interface; Windows is the native
+installer target.
 
 Go, Lua, Task and the source repository are not needed for this workflow.
 The executable finds `plugins.json` beside itself, even when started from
@@ -66,7 +69,8 @@ compared numerically: `3.10.0` is newer than `3.9.60`.
 
 The packaged installer currently has no `--dry-run`, `--at` or
 `--ma-version` option. Use its picker for a specific MA2 version, or the
-developer commands below for a dry run or a different pool slot.
+developer commands below for a dry run. Slot fields are available in
+the native installer.
 
 Before copying, it checks selected filenames, duplicate file bases,
 import-command requirements, Lua code rules and all selected source
@@ -150,6 +154,9 @@ Use the source picker:
 ```powershell
 task tui
 ```
+
+The developer picker stays in the terminal: Space selects a plugin, S
+edits its slot, and Enter continues to the version list.
 
 Or install one source plugin, first without copying files:
 
@@ -235,6 +242,7 @@ test/bundles/      Committed Lua/XML reference files
 cmd/ma2kit/        Developer executable entry point
 cmd/setup/         Distribution install.exe entry point
 internal/          Go implementation and adjacent *_test.go files
+internal/native/   Windows controls and shared selection validation
 third_party/       Included LuaUnit library
 .github/workflows/ GitHub Actions checks
 
@@ -251,6 +259,7 @@ The original Lua-to-Go port was also checked for byte-for-byte equality.
 
 Current architecture and remaining design work: [AGENTS.md](AGENTS.md).
 GitHub Actions runs Lua and Go checks on pull requests and main pushes.
+A Windows job also checks Windows-only code and builds the native installer.
 The coverage badge is a manually updated local measurement, not a live
 coverage service. Lua coverage is not measured.
 
@@ -266,3 +275,8 @@ coverage service. Lua coverage is not measured.
 | Development tool missing from PATH | Open a new terminal after setup |
 | Old plugin still runs | Delete its pool copy and import again |
 | Conflict message | Inspect the Conflicts Group/Layout and fix the patch |
+
+The Windows build uses the Walk toolkit, with its application manifest
+embedded in the executable. Task runs pinned rsrc v0.10.2 to regenerate
+that resource. Initial builds may need network access for Go modules;
+the finished installer needs no extra GUI runtime or resource files.
