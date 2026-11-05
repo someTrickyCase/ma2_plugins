@@ -13,9 +13,16 @@ const (
 	cursorMark  = ">"
 	pluginLines = 6
 	versionLine = 4
+	newline     = "\n"
 )
 
 func (model Model) View() string {
+	if model.step == stepSlot {
+		return "Plugin slot: " + model.plugins[model.cursor].Name + "\n\n" +
+			model.slotText + newline + model.problem +
+			"\n\nenter: save   esc: cancel"
+	}
+
 	if model.step == stepVersions {
 		return model.versionView()
 	}
@@ -39,10 +46,11 @@ func (model Model) pluginView() string {
 
 	lines = append(lines,
 		"",
-		hintText("space: pick   enter: next   esc: quit"),
+		hintText("space: pick   s: slot   enter: next   esc: quit"),
+		model.problem,
 	)
 
-	return strings.Join(lines, "\n")
+	return strings.Join(lines, newline)
 }
 
 func (model Model) pluginLine(index int, item Item) string {
@@ -100,7 +108,7 @@ func (model Model) versionView() string {
 		hintText("enter: install   esc: back   q: quit"),
 	)
 
-	return strings.Join(lines, "\n")
+	return strings.Join(lines, newline)
 }
 
 func titleText(text string) string {

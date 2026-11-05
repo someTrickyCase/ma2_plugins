@@ -1,7 +1,7 @@
 # ma2_plugins
 
 [![CI](https://github.com/someTrickyCase/ma2_plugins/actions/workflows/ci.yml/badge.svg)](https://github.com/someTrickyCase/ma2_plugins/actions/workflows/ci.yml)
-[![Go coverage](https://img.shields.io/badge/go%20coverage-87.0%25-brightgreen)](https://github.com/someTrickyCase/ma2_plugins)
+[![Go coverage](https://img.shields.io/badge/go%20coverage-86.4%25-brightgreen)](https://github.com/someTrickyCase/ma2_plugins)
 
 Lua plugins for grandMA2, with Go tools for developing, testing, building
 and installing them. Developed on Windows 11 with MA2 onPC 3.9.60.
@@ -39,6 +39,9 @@ Open PowerShell in that folder and run:
 ```
 
 Use the arrow keys to move, Space to select plugins and Enter to continue.
+Press S on a plugin to enter its pool slot. Slots must be positive whole
+numbers and selected plugins must use different slots. Changes apply to
+this installation only; packaged defaults are not changed or saved.
 Choose an MA2 version and press Enter to install. Esc goes back from the
 version list or exits from the plugin list. The installer then prints
 MA2 import commands. It does not import or run plugins inside your show.
