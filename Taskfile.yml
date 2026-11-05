@@ -99,3 +99,9 @@ tasks:
           go run -buildvcs=true ./cmd/ma2kit bundle $plugin --out test/bundles \
             --commit {{.GOLDEN_COMMIT}} --date {{.GOLDEN_DATE}}
         done
+
+  install:
+    desc: Run every check, then install a plugin into MA2
+    cmds:
+      - task: check
+      - go run -buildvcs=true ./cmd/ma2kit install {{.CLI_ARGS}}

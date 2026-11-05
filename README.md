@@ -1,7 +1,7 @@
 # ma2_plugins
 
 [![CI](https://github.com/someTrickyCase/ma2_plugins/actions/workflows/ci.yml/badge.svg)](https://github.com/someTrickyCase/ma2_plugins/actions/workflows/ci.yml)
-[![Go coverage](https://img.shields.io/badge/go%20coverage-92.5%25-brightgreen)](https://github.com/someTrickyCase/ma2_plugins)
+[![Go coverage](https://img.shields.io/badge/go%20coverage-92.6%25-brightgreen)](https://github.com/someTrickyCase/ma2_plugins)
 
 Lua plugins for grandMA2, written and tested on Windows, then delivered
 to MA2 with one command.
@@ -19,13 +19,8 @@ You need this once per computer.
    **user** PATH: `lua53`, `luac53`, `luacheck`, `stylua`.
 2. **Git** on PATH.
 3. **Go and Task** on PATH. The installer runs the checks with Task, and
-   the code rules checker and the bundler are Go programs (`ma2kit`).
-4. **PowerShell may run local scripts.** If you ever see
-   *"running scripts is disabled on this system"*, run this once:
-
-   ```powershell
-   Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
-   ```
+   the code rules checker, the bundler and the installer are Go programs
+   (`ma2kit`).
 
 Check it in a **new** terminal window (an old window keeps its old
 PATH):
@@ -43,15 +38,18 @@ task --version     # 3.54.0
 
 ```powershell
 cd C:\k_ma2programming
-.\install.ps1 -Plugin channel-to-fixture -WhatIf   # dry run, copies nothing
-.\install.ps1 -Plugin channel-to-fixture           # real install
+task install -- channel-to-fixture --dry-run   # dry run, copies nothing
+task install -- channel-to-fixture             # real install
 ```
 
-The script:
+The `--` tells Task that the rest belongs to `ma2kit`, not to Task.
+Without it, Task looks for a task with that name and stops.
 
-1. runs every check (`pre-commit.ps1`) and **stops if anything is red**
-2. builds one Lua file and one XML file in `dist\` (with `ma2kit bundle`)
-3. checks the built file (valid Lua 5.3, our code rules)
+The task:
+
+1. runs every check (`task check`) and **stops if anything is red**
+2. builds one Lua file and one XML file
+3. checks the built file against our code rules
 4. copies both files to the plugins folder of the **newest** MA2
    version: `C:\ProgramData\MA Lighting Technologies\grandma\
    gma2_V_<version>\plugins\`
@@ -62,12 +60,14 @@ overwrite MA's own files.
 Several MA2 versions installed? Pick one:
 
 ```powershell
-.\install.ps1 -Plugin channel-to-fixture -MaVersion 3.9.60
+task install -- channel-to-fixture --ma-version 3.9.60
 ```
+
+The versions are compared as numbers, so `3.10.0` is newer than `3.9.60`.
 
 ## 3. Import it in MA2
 
-At the end, `install.ps1` prints every MA2 command you need, in order.
+At the end, the install prints every MA2 command you need, in order.
 Each command is on its own line, so it is easy to copy:
 
 ```
@@ -86,7 +86,7 @@ Is that slot taken in your show? Change it there, or pick another one
 just for this time:
 
 ```powershell
-.\install.ps1 -Plugin channel-to-fixture -At 5
+task install -- channel-to-fixture --at 5
 ```
 
 The **System Monitor** then shows the version stamp:
@@ -101,7 +101,7 @@ Channel to Fixture 0.2.0 (e8482d2, 2026-10-25)
 ## 4. Update to a new version
 
 MA2 keeps **its own copy** of a plugin inside the show. Copying new files
-is not enough. After `install.ps1`, paste commands 1 and 2 from its list:
+is not enough. After the install, paste commands 1 and 2 from its list:
 
 ```
 Delete Plugin 101
@@ -163,11 +163,11 @@ Not tested yet. Two ways that should work:
 
 | You see                                   | Do this                                     |
 | ----------------------------------------- | ------------------------------------------- |
-| `FAILED: checks are red`                  | Run `.\pre-commit.ps1` to see what is wrong |
-| `FAILED: unknown plugin 'x'`              | Use a folder name from `plugins\`           |
-| `FAILED: no MA2 data folder found`        | Is MA2 onPC installed? Check `-MaVersion`   |
+| `checks are red`                          | Run `task check` to see what is wrong       |
+| `missing file plugins/x/plugin.json`      | Use a folder name from `plugins\`           |
+| `no MA2 version folder found`             | Is MA2 onPC installed? Try `--ma-version`   |
+| `the built file breaks the code rules`    | Run `task check` to see the broken rule     |
 | `lua53 is not recognized`                 | Open a new terminal. Check the PATH         |
-| `running scripts is disabled`             | See one-time setup, step 3                  |
 | MA2 still runs the old version            | `Delete Plugin N`, then import again        |
 | Conflict popup                            | Fix the listed IDs in the patch, run again  |
 
@@ -207,6 +207,8 @@ internal/bundle/     the bundler: the plugin file and the MA2 XML
 internal/manifest/   the plugin manifest, read and written
 internal/scaffold/   builds a new plugin from a template
 internal/readfile/   reads a file by name, without leaving its folder
+internal/mahome/     where MA2 keeps its data: the version folders
+internal/install/    the install: check the rules, copy the files
 ```
 
 The code rules are simple on purpose: **only printable ASCII, and no
@@ -222,6 +224,13 @@ the MA2 XML next to it and prints the commands to load it into MA2.
 
 ```
 ma2kit bundle channel-to-fixture --out dist
+```
+
+The installer finds the MA2 folder, checks the built file, copies it and
+prints the commands to load it into MA2.
+
+```
+ma2kit install channel-to-fixture --dry-run
 ```
 
 ## For developers
