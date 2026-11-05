@@ -41,6 +41,10 @@ and development guide; README.md covers user workflows.
 - Keep documentation and relevant local memory current as work proceeds.
   Ordinary new docs use `.claude.md`; keep recognized filenames such as
   README.md, AGENTS.md and SKILL.md unchanged.
+- README.md is public user documentation: project description, download,
+  launching and usage only. Never include personal information, personal
+  preferences, absolute local workspace paths or machine-specific setup.
+  Keep development details in this guide and personal notes in local memory.
 
 ## Tools and configuration
 
