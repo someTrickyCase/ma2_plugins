@@ -19,7 +19,7 @@ func TestNewCreatesThePluginFiles(t *testing.T) {
 	expectStdoutContains(t, got, "plugins/my-plugin/main.lua")
 	expectStdoutContains(t, got, "test/plugins/my-plugin/main.test.lua")
 	expectStdoutContains(t, got, "My Plugin")
-	expectStdoutContains(t, got, "task install my-plugin")
+	expectStdoutContains(t, got, "task install -- my-plugin")
 }
 
 func TestNewWithoutANameShowsUsage(t *testing.T) {

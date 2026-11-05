@@ -26,7 +26,7 @@ func runNew(args []string, stdout, stderr io.Writer) int {
 	_, _ = fmt.Fprintf(
 		stdout, "Plugin %q is ready, slot %d\n", result.Title, result.Slot)
 
-	next := "Next: task install " + result.Name
+	next := "Next: task install -- " + result.Name
 	_, _ = fmt.Fprintln(stdout, next)
 
 	return ExitOK
