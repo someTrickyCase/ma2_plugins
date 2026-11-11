@@ -6,44 +6,44 @@ import (
 	"strconv"
 
 	"github.com/someTrickyCase/ma2_plugins/internal/mahome"
-	"github.com/someTrickyCase/ma2_plugins/internal/tui"
+	"github.com/someTrickyCase/ma2_plugins/internal/selection"
 )
 
 var errSelection = errors.New("choose plugins and an installed MA2 version")
 
 func Choose(
-	items []tui.Item,
+	items []selection.Item,
 	checked []bool,
 	slots []string,
 	versions []mahome.Version,
 	version int,
-) (tui.Selection, error) {
+) (selection.Selection, error) {
 	if len(items) != len(checked) || len(items) != len(slots) ||
 		version < 0 || version >= len(versions) {
-		return tui.Selection{}, errSelection
+		return selection.Selection{}, errSelection
 	}
 
 	chosen, err := checkedItems(items, checked, slots)
 	if err != nil {
-		return tui.Selection{}, err
+		return selection.Selection{}, err
 	}
 
 	if len(chosen) == 0 {
-		return tui.Selection{}, errSelection
+		return selection.Selection{}, errSelection
 	}
 
-	err = tui.ValidateItems(chosen)
+	err = selection.ValidateItems(chosen)
 	if err != nil {
-		return tui.Selection{}, fmt.Errorf("check plugin slots: %w", err)
+		return selection.Selection{}, fmt.Errorf("check plugin slots: %w", err)
 	}
 
-	return tui.Selection{Items: chosen, Version: versions[version]}, nil
+	return selection.Selection{Items: chosen, Version: versions[version]}, nil
 }
 
 func checkedItems(
-	items []tui.Item, checked []bool, slots []string,
-) ([]tui.Item, error) {
-	chosen := []tui.Item{}
+	items []selection.Item, checked []bool, slots []string,
+) ([]selection.Item, error) {
+	chosen := []selection.Item{}
 
 	for index, item := range items {
 		if !checked[index] {

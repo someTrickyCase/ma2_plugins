@@ -8,11 +8,11 @@ import (
 	"strings"
 
 	"github.com/someTrickyCase/ma2_plugins/internal/bundle"
+	"github.com/someTrickyCase/ma2_plugins/internal/manifest"
 	"github.com/someTrickyCase/ma2_plugins/internal/rules"
 )
 
 const (
-	ourPrefix      = "k-"
 	dirPermission  = 0o750
 	filePermission = 0o600
 )
@@ -141,9 +141,8 @@ func checkRules(path string, text string) error {
 }
 
 func checkOurName(name string) error {
-	if !strings.HasPrefix(name, ourPrefix) ||
-		len(name) == len(ourPrefix) ||
-		strings.ContainsAny(name, `/\:.`) {
+	err := manifest.ValidateFile(name)
+	if err != nil {
 		return fmt.Errorf("%w: %q", errNotOurs, name)
 	}
 

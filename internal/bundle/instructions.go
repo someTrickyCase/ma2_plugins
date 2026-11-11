@@ -18,7 +18,7 @@ func Instructions(one manifest.Manifest, slot int) ([]string, error) {
 		target = one.Slot
 	}
 
-	if target == 0 {
+	if target <= 0 {
 		return nil, errNoSlot
 	}
 

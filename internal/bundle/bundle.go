@@ -82,10 +82,17 @@ func Collect(plugin string, read Reader, stamp Stamp) (Plugin, error) {
 		return Plugin{}, fmt.Errorf("%w %s", errMissingFile, mainPath)
 	}
 
+	modules, err := discover(
+		main, read, []Module{}, map[string]bool{}, mainPath,
+	)
+	if err != nil {
+		return Plugin{}, err
+	}
+
 	return Plugin{
 		Manifest: parsed,
 		Main:     main,
-		Modules:  discover(main, read, []Module{}, map[string]bool{}),
+		Modules:  modules,
 		Stamp:    stamp,
 	}, nil
 }

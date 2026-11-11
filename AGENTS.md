@@ -97,6 +97,8 @@ ma2kit bundle --all [flags]
 ma2kit manifest --out <dir>
 ma2kit install <plugin-name> [flags]
 ma2kit tui [flags]
+ma2kit package-stage
+ma2kit package-promote
 ```
 
 - bundle: `--out`, `--at`, `--commit`, `--date`.
@@ -204,6 +206,10 @@ with its own module loader, and writes MA2 XML. One Lua file can travel
 inside the show. The JSON manifest is consumed by Go and stays outside
 the MA2 runtime. `ma2kit new` creates a manifest, entry and test, choosing
 the first free source-manifest slot from 101.
+Bundled project dependencies must use one direct `require("module.name")`
+per line, optionally assigned to a local or simple variable. Missing
+`core.*` and `ma.*` modules fail the build; external requires remain
+external. Do not hide a project require in a string or use a dynamic name.
 
 install.Do builds Lua/XML, validates the filename and Lua code rules,
 prepares import commands, then copies unless dry-run. Multi-plugin source
@@ -252,14 +258,15 @@ Renaming box for clarity was suggested, not performed.
 
 ### Build and distribution
 
-`task dist` emits dist/bundle/install.exe, one Lua/XML pair per discovered
-plugin, and plugins.json with a plugins array of name/file/version/slot
-objects. bundle --all and manifest discover plugins/*/plugin.json.
+`task dist` builds into a fresh dist/bundle-stage directory, verifies the
+installer, plugins.json and every discovered Lua/XML pair, then replaces
+dist/bundle while retaining the previous complete package on build failure.
+The package-stage and package-promote commands implement this workflow.
+bundle --all and manifest discover plugins/*/plugin.json.
 Task's ordinary bundle/golden tasks and the Go golden test cases still
 list plugins explicitly; update them when adding one.
 
-The distribution task does not clean old files or run checks. Build from
-a fresh output folder before sharing, excluding obsolete executables.
+The distribution task does not run checks. Run task check before sharing.
 Release ZIPs are currently staged and published manually; there is no
 tag-triggered release workflow. Go ships as the Windows installer, while
 only Lua/XML go into MA2's plugin folder.
@@ -286,8 +293,7 @@ OS thread. Linux/macOS entry points retain the terminal fallback.
 - task golden regenerates fixed-stamp files. Review their diff; do not
   regenerate only to hide a failing test.
 - Go uses external *_test packages, table tests and small helpers.
-- task coverage measures Go only. Refresh the manual README badge when
-  the total changes; there is no Lua coverage number.
+- task coverage measures Go only; there is no Lua coverage number.
 
 ci.yml runs on pull requests and pushes to main on Ubuntu 24.04. Its Lua
 job runs task lua; its Go job runs task go, task rules and task coverage.
@@ -321,6 +327,103 @@ Keep commands compatible with Windows and Linux.
 - Use the existing XML namespace construction; do not disable URL linting.
 
 ## Status and next work
+
+Current source workflows: Sequence Cleanup v0.2.0 (slot 103) removes
+unused fixture data; Sequence Position Presets v0.1.1 (slot 104)
+creates cue-based position presets. Both preserve the explicit
+positive-stored-dimmer policy and leave effect positions for review.
+Runtime XML readback was removed by user request. `core/xml-verify.lua`
+is retained only for offline comparison tests and probe analysis; it is
+not a runtime safety check. The dated checkpoints below are historical.
+
+Sequence Cleanup v0.1.7: the user explicitly requires known dimmer
+fixtures to have at least one positive stored dimmer value to be kept.
+No positive value means removal, regardless of missing initial values,
+defaults, effects or preset links. Unsupported mappings and shutter-only
+fixtures remain for review. This supersedes earlier conservative dimmer
+policy descriptions. Remaining raw positions include numeric bases with
+effects, currently skipped; probe-position-effects is prepared to verify
+converting those bases without losing effects. Do not enable this path
+before checking the probe result.
+
+Sequence Cleanup v0.1.6 fixes an immediate startup error confirmed at
+bundle line 584: selected executor number may be nil. The optional
+suggestion now stays unresolved and the explicit sequence prompt still
+opens. Errors are also saved to temp/sequence-cleanup-error.json without
+masking the original dialog. Console retry is pending.
+
+Sequence Cleanup v0.1.5: by explicit user instruction, DIM Release (R)
+counts as zero only for unused-fixture planning. Positive values in other
+cues still retain the fixture. Effects, preset links, other special
+values and unknown initial output still require review; shutter Release
+is not interpreted as closed. Retained sequence XML is unchanged by this
+classification. Console trial remains pending.
+
+Sequence Cleanup v0.1.4 checkpoint, 2026-11-08: the user requested
+shared color presets across fixtures/cues and per-cue position presets
+named cue_<cue number>, preserving existing references. Position values
+remain exact; separate parts use separate presets. Mixing tolerance and
+exact wheel matching remain. Every participating fixture is included in
+shared preset XML. Runtime XML verification/readback exports and source
+freshness checks are removed by explicit user request; backup copying,
+slot checks, plan confirmation and command error handling remain.
+Existing and new sequence presets receive green borders using documented
+Appearance commands. The focused appearance probe and full v0.1.4 console
+trial are pending. Full task check passes with 192 Lua tests and refreshed
+golden artifacts. This checkpoint supersedes earlier runtime verification
+and per-fixture preset-grouping descriptions below. See
+sequence-cleanup.claude.md for details.
+
+Sequence Cleanup development checkpoint, 2026-11-08: an unreleased
+v0.1.3 source plugin now exists at plugins/sequence-cleanup, default slot
+103. It uses cleanup-flow/runtime/read/write/files and the pure XML,
+fixture-type, sequence-data, unused-fixtures and preset-planning modules.
+The explicit Task and Go golden lists include it. The published v0.1.0
+release below is unchanged and does not contain this plugin.
+
+The runtime always asks for a sequence number. The selected executor's
+Cue 1 parent supplies only a suggested default. Sequence and backup numbers
+are limited to 1..511. It exports console data, plans before applying,
+marks review fixtures using the existing conflict-group helper, confirms
+the plan, verifies a backup, imports new presets, checks source freshness,
+imports edited sequence XML and reads it back. Programmer values stay;
+fixture selection can be cleared during review marking. Files use the
+console PATH and internal drive, never a hardcoded machine path.
+
+Tolerances apply to stored values; zero means exact. Partial raw data
+creates partial presets. Existing preset references are retained. Wheel
+values use exact matching; the sampled 8-bit percentage-to-DMX color-name
+mapping was visually confirmed. Shutter-only removal remains disabled
+by user agreement pending a dedicated test. Multi-instance mapping is
+unverified and retained for review. Effects cause the final tracking pass
+to remain manual; static sequences use Track/Block/Unblock with readback.
+Earlier successful changes are not rolled back automatically.
+
+Individual console probes verified new preset creation, raw position and
+color references, existing-sequence overwrite/removal and static tracked
+values. Real exports stay outside tracked source; regression tests use
+synthetic data. The first full onPC run stalled in the reading stage.
+v0.1.1 adds explicit sequence choice, byte/fixture/type progress, a bounded
+cooperative yield budget and temp/sequence-cleanup-status.json diagnostics.
+The input export parses locally; the cause of the console stall is still
+unverified. Full checks and 178 Lua tests pass; the updated console trial
+is pending. The subsequent run reached stage 70. Its exported backup
+differed only in sequence index and an automatically generated name.
+v0.1.2 accepts those identity differences only when checking backups,
+uses compact streamed sequence records, fast unchanged-body comparisons
+with validated envelopes and streaming fallback verification. Local peak
+memory fell from about 271 MB to 47 MB, and the sampled unchanged check
+from 5.1 to 0.3 seconds. These are host measurements, not console timings.
+Write progress now separates freshness, backup, presets and final import.
+The preset-pool probe verified parent/child traversal through a qualified
+preset. Bare Preset N resolves in the current preset type, not a pool.
+v0.1.3 finds a qualified seed, validates CMD_PRESET_POOL and its number,
+then iterates sparse children directly. Sequence references supply seed
+hints when slot 1 is empty. Unseeded/empty pools retain a bounded fallback
+search. The populated test pools now need two name lookups rather than
+20,000; actual console speed remains to be measured. The sampled 0.001
+and 0.01 sleep requests both measured about 16 ms. There are 187 Lua tests.
+See sequence-cleanup.claude.md for detailed development state.
 
 End-of-day state, 2026-11-05: PRs #12, #16, #17 and #18 are merged.
 Installer issues #13, #14 and #15 are completed. No open feature issue
@@ -370,3 +473,16 @@ Possible next work, after end-user release testing:
 4. Test install.exe interactively and run the actual onPC import workflow.
 5. Automate release staging, notices, checksums and v*-tag publication.
 6. Later: more agent tools (probe/api/docs) and a separate MA2 skills repo.
+
+Latest sequence workflow split: Sequence Cleanup v0.2.0 (slot 103)
+removes unused fixture data only. Sequence Position Presets v0.1.0
+(slot 104) creates cue_ position presets only, with a restored tolerance
+prompt. Matching fixture Pan/Tilt sets within each cue part may use a
+representative within tolerance; zero preserves exact values. Separate
+cues/parts retain separate presets. Both entry points disable colors.
+Effects conversion and identity-error debugging remain deferred.
+
+Console feedback: the user confirmed fixture cleanup works. Sequence
+Position Presets v0.1.1 removes the fixture-removal counter from its
+result and plan summaries. Conflicts Group/Layout means fixtures needing
+review for skipped values or unsupported mappings in this workflow.

@@ -1,31 +1,19 @@
 package tui
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/someTrickyCase/ma2_plugins/internal/selection"
 )
 
-var (
-	errSlot  = errors.New("plugin slots must be positive whole numbers")
-	errTaken = errors.New("selected plugins must have different slots")
-)
+var errSlot = selection.ErrSlot
 
 func ValidateItems(items []Item) error {
-	seen := map[int]bool{}
-
-	for _, item := range items {
-		if item.Slot <= 0 {
-			return errSlot
-		}
-
-		if seen[item.Slot] {
-			return fmt.Errorf("%w: %d", errTaken, item.Slot)
-		}
-
-		seen[item.Slot] = true
+	err := selection.ValidateItems(items)
+	if err != nil {
+		return fmt.Errorf("validate selected plugins: %w", err)
 	}
 
 	return nil

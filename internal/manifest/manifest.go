@@ -3,11 +3,25 @@ package manifest
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"path/filepath"
+	"regexp"
 
 	"github.com/someTrickyCase/ma2_plugins/internal/readfile"
 )
+
+var errInvalidFile = errors.New("invalid plugin file base")
+
+var filePattern = regexp.MustCompile(`^k-[a-z0-9-]+$`)
+
+func ValidateFile(name string) error {
+	if !filePattern.MatchString(name) {
+		return fmt.Errorf("%w %q", errInvalidFile, name)
+	}
+
+	return nil
+}
 
 const (
 	pluginFolder = "plugins"

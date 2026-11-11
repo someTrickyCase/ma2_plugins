@@ -1,17 +1,21 @@
 package cli
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/someTrickyCase/ma2_plugins/internal/buildinfo"
 	"github.com/someTrickyCase/ma2_plugins/internal/bundle"
 	"github.com/someTrickyCase/ma2_plugins/internal/manifest"
 )
+
+var errDuplicateBundleFile = errors.New("duplicate plugin file base")
 
 const (
 	defaultFolder  = "dist"
@@ -73,6 +77,11 @@ func runBundleAll(args []string, stdout, stderr io.Writer) int {
 		return showUsage(stderr, "no plugins found")
 	}
 
+	err = validateBundleEntries(entries)
+	if err != nil {
+		return showUsage(stderr, err.Error())
+	}
+
 	for _, entry := range entries {
 		one := append([]string{entry.Folder}, args...)
 
@@ -83,6 +92,28 @@ func runBundleAll(args []string, stdout, stderr io.Writer) int {
 	}
 
 	return ExitOK
+}
+
+func validateBundleEntries(entries []manifest.Entry) error {
+	seen := map[string]bool{}
+
+	for _, entry := range entries {
+		err := manifest.ValidateFile(entry.Manifest.File)
+		if err != nil {
+			return fmt.Errorf("invalid bundle entry: %w", err)
+		}
+
+		key := strings.ToLower(entry.Manifest.File)
+		if seen[key] {
+			return fmt.Errorf(
+				"%w: %s", errDuplicateBundleFile, entry.Manifest.File,
+			)
+		}
+
+		seen[key] = true
+	}
+
+	return nil
 }
 
 func stampOf(commit string, date string) bundle.Stamp {
@@ -108,12 +139,17 @@ type bundleFiles struct {
 }
 
 func writeBundle(folder string, plugin bundle.Plugin) (bundleFiles, error) {
+	err := manifest.ValidateFile(plugin.Manifest.File)
+	if err != nil {
+		return bundleFiles{}, fmt.Errorf("cannot bundle plugin: %w", err)
+	}
+
 	base := filepath.Join(folder, plugin.Manifest.File)
 
 	luaPath := filepath.ToSlash(base + ".lua")
 	xmlPath := filepath.ToSlash(base + ".xml")
 
-	err := os.MkdirAll(folder, dirPermission)
+	err = os.MkdirAll(folder, dirPermission)
 	if err != nil {
 		return bundleFiles{}, fmt.Errorf("cannot create %q: %w", folder, err)
 	}

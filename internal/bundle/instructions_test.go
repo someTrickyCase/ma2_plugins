@@ -80,3 +80,21 @@ func TestInstructionsNeedASlot(t *testing.T) {
 			err.Error())
 	}
 }
+
+func TestInstructionsRejectNegativeSlots(t *testing.T) {
+	t.Parallel()
+
+	plugin := answerPlugin([]bundle.Module{}).Manifest
+
+	_, err := bundle.Instructions(plugin, -1)
+	if err == nil {
+		t.Fatal("negative override accepted")
+	}
+
+	plugin.Slot = -1
+
+	_, err = bundle.Instructions(plugin, 0)
+	if err == nil {
+		t.Fatal("negative default accepted")
+	}
+}

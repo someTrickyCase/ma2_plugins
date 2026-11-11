@@ -109,6 +109,50 @@ The plugin stops on an unexpected result. Earlier completed changes are
 not rolled back. Installation write failures can also leave partial
 output. Hardware consoles have not been verified.
 
+## Sequence tools (unreleased)
+
+These plugins are not included in the v0.1.0 download. Test them on a
+show copy first. Each asks for a sequence number, shows a plan for
+confirmation and creates a backup in a free sequence slot below 512.
+Sequence numbers 1 through 511 are supported.
+
+| Plugin | Version | Default slot | Action |
+| --- | --- | --- | --- |
+| Sequence Cleanup | 0.2.0 | 103 | Remove unused fixture data |
+| Sequence Position Presets | 0.1.1 | 104 | Convert raw positions to presets |
+
+Sequence Cleanup keeps known dimmer fixtures only when at least one cue
+has a positive stored dimmer value. Missing initial values, defaults,
+Release `(R)`, effects and preset links do not retain a fixture without
+such a value. Unsupported mappings and shutter-only fixtures remain for
+review. This plugin does not create or change presets.
+
+Sequence Position Presets asks for position tolerance in stored attribute
+values. It creates one `cue_<cue number>` position preset per cue,
+combining participating fixtures. Separate cue parts use separate presets.
+Within each cue part, fixtures with matching Pan/Tilt attribute sets and
+values within tolerance use the first matching fixture's values. Each
+attribute stays within tolerance of its original value. Zero keeps exact
+values. Different cues retain separate presets. Partial raw positions
+create partial presets; existing references remain. Values with effects
+and special values remain for review. No fixtures are removed and color
+presetting is disabled. Occupied preset slots and names are preserved.
+Existing and new position presets referenced by the sequence receive
+green borders, which also appear wherever those presets are used.
+
+Fixtures needing review are marked in a new `Conflicts` Group and Layout.
+For position presetting, these identify skipped effects or special values
+and unsupported or ambiguous fixture mappings. The affected values stay
+unchanged; the name does not necessarily indicate an ID conflict.
+Marking clears fixture selection but preserves programmer values. Cancel
+keeps review objects and leaves sequence data unchanged.
+
+Static sequences finish with Tracking, Block and Unblock automatically.
+Sequences with effects require that pass manually; numbered commands are
+printed in System Monitor. Multi-instance mapping remains unsupported.
+Command errors stop the plugin. Runtime XML readback is skipped; earlier
+successful changes and created presets are not rolled back automatically.
+
 ## Command-line options
 
 You can also launch the installer from PowerShell:
@@ -135,4 +179,4 @@ The installer has no dry-run option.
 | No MA2 version found | Check that onPC is installed, or use `--ma-root` |
 | Invalid slot | Enter positive, different slots for selected plugins |
 | Old plugin still runs | Delete its pool copy and import again |
-| Conflict message | Inspect the Conflicts Group/Layout and fix the IDs |
+| Conflict message | Inspect the Conflicts Group/Layout; fix ID conflicts or review skipped sequence values as applicable |
