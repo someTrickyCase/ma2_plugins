@@ -4,13 +4,17 @@ Plugins for grandMA2 with a native Windows installer. The installer
 copies the plugin files and provides the commands to import them into
 your show.
 
-| Plugin | Version | Default slot | Action |
-| --- | --- | --- | --- |
-| Channel to Fixture | 0.2.0 | 101 | Move Channel IDs to Fixture IDs |
-| Fixture to Channel | 0.2.0 | 102 | Move Fixture IDs to Channel IDs |
+| Plugin | Version | Slot | Availability | Action |
+| --- | --- | --- | --- | --- |
+| Channel to Fixture | 0.2.0 | 101 | v0.1.0 download | Move Channel IDs to Fixture IDs |
+| Fixture to Channel | 0.2.0 | 102 | v0.1.0 download | Move Fixture IDs to Channel IDs |
+| Sequence Cleanup | 0.2.0 | 103 | Source build | Remove unused fixture data |
+| Sequence Position Presets | 0.1.1 | 104 | Source build | Convert raw positions to presets |
 
-Both plugins check for conflicts, ask before moving IDs and verify each
-change. Try them on a copy of your show first.
+The two ID conversion plugins check for conflicts, ask before moving IDs
+and verify each change. The sequence tools ask you to review a plan and
+create a backup before changing a sequence. Try any plugin on a copy of
+your show first.
 
 ## Download
 
@@ -86,7 +90,7 @@ MA2 stores a copy of the plugin inside the show. Updating files on disk
 alone does not update that copy: delete the old pool plugin and import
 again. The plugin's version appears in System Monitor when it runs.
 
-## Plugin behaviour
+## ID conversion behaviour
 
 The plugins read the patch, plan the ID moves and ask for confirmation.
 During the operation, a progress window shows activity and each change
@@ -111,15 +115,13 @@ output. Hardware consoles have not been verified.
 
 ## Sequence tools (unreleased)
 
-These plugins are not included in the v0.1.0 download. Test them on a
-show copy first. Each asks for a sequence number, shows a plan for
-confirmation and creates a backup in a free sequence slot below 512.
-Sequence numbers 1 through 511 are supported.
-
-| Plugin | Version | Default slot | Action |
-| --- | --- | --- | --- |
-| Sequence Cleanup | 0.2.0 | 103 | Remove unused fixture data |
-| Sequence Position Presets | 0.1.1 | 104 | Convert raw positions to presets |
+These plugins are available in a package built from the current source;
+they are not included in the v0.1.0 download. To install a source-built
+package, run its `install.exe`, select either or both sequence tools, then
+use the import and run commands it displays for your chosen slots. Check
+those pool slots in your show before importing. Each tool asks for a
+sequence number, shows a plan for confirmation and creates a backup in a
+free sequence slot below 512. Sequence numbers 1 through 511 are supported.
 
 Sequence Cleanup keeps known dimmer fixtures only when at least one cue
 has a positive stored dimmer value. Missing initial values, defaults,
@@ -179,4 +181,4 @@ The installer has no dry-run option.
 | No MA2 version found | Check that onPC is installed, or use `--ma-root` |
 | Invalid slot | Enter positive, different slots for selected plugins |
 | Old plugin still runs | Delete its pool copy and import again |
-| Conflict message | Inspect the Conflicts Group/Layout; fix ID conflicts or review skipped sequence values as applicable |
+| Conflict message | Inspect the Conflicts Group/Layout; fix ID conflicts or review skipped sequence values |
