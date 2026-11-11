@@ -149,4 +149,51 @@ function tests.testNamesClearStepsInProblems()
   lu.assertStrContains(problem, "clear FixId on Dim 1 (fren)")
 end
 
+function tests.testStopsWhenLeavingEditSetupFails()
+  local fake = fren({})
+  local command = fake.gma.cmd
+  fake.gma.cmd = function(text)
+    if text == "cd /" then
+      return "exit failed"
+    end
+    return command(text)
+  end
+  local _, problem = patchWriter.apply(
+    fake.gma,
+    { set(dim2, "fixId", 802), clear(dim2, "chaId") },
+    noProgress
+  )
+  lu.assertStrContains(problem, "cannot leave EditSetup: exit failed")
+  lu.assertEquals(#fake.commands, 1)
+end
+
+function tests.testAssignmentErrorTakesPriorityOverExitError()
+  local fake = fren({ failWith = "assign failed" })
+  local command = fake.gma.cmd
+  fake.gma.cmd = function(text)
+    if text == "cd /" then
+      return "exit failed"
+    end
+    return command(text)
+  end
+  local _, problem =
+    patchWriter.apply(fake.gma, { set(dim2, "fixId", 802) }, noProgress)
+  lu.assertStrContains(problem, "assign failed")
+  lu.assertNotStrContains(problem, "exit failed")
+end
+
+function tests.testNilReadbackReturnsDescriptiveMismatch()
+  local fake = fren({})
+  local property = fake.gma.show.property.get
+  fake.gma.show.property.get = function(handle, name)
+    if name == "FixId" then
+      return nil
+    end
+    return property(handle, name)
+  end
+  local _, problem =
+    patchWriter.apply(fake.gma, { set(dim2, "fixId", 802) }, noProgress)
+  lu.assertStrContains(problem, "FixId is nil, expected 802")
+end
+
 return tests

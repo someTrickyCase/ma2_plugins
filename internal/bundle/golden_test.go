@@ -36,6 +36,8 @@ func TestGoldenBundles(t *testing.T) {
 	}{
 		{"channel-to-fixture", "k-channel-to-fixture"},
 		{"fixture-to-channel", "k-fixture-to-channel"},
+		{"sequence-cleanup", "k-sequence-cleanup"},
+		{"sequence-position-presets", "k-sequence-position-presets"},
 	}
 
 	for _, testCase := range cases {

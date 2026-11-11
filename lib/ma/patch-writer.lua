@@ -44,7 +44,8 @@ local function verify(gma, fixture, ids)
     local actual = gma.show.property.get(handle, id.property)
     local expected = idText(ids[id.field])
     if actual ~= expected then
-      return nil, id.property .. " is " .. actual .. ", expected " .. expected
+      return nil,
+        id.property .. " is " .. tostring(actual) .. ", expected " .. expected
     end
   end
   return true
@@ -78,9 +79,12 @@ local function applyStep(gma, step, ids)
     return nil, problem
   end
   problem = gma.cmd(assignCommand(gma, handle, step))
-  gma.cmd("cd /")
+  local exitProblem = gma.cmd("cd /")
   if problem then
     return nil, problem
+  end
+  if exitProblem then
+    return nil, "cannot leave EditSetup: " .. tostring(exitProblem)
   end
   local after = idsAfter(ids, step)
   local ok, mismatch = verify(gma, step.fixture, after)

@@ -6,6 +6,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/someTrickyCase/ma2_plugins/internal/mahome"
+	"github.com/someTrickyCase/ma2_plugins/internal/selection"
 )
 
 const (
@@ -33,17 +34,10 @@ const (
 	stepDone
 )
 
-type Item struct {
-	Key     string
-	Name    string
-	Version string
-	Slot    int
-}
-
-type Selection struct {
-	Items   []Item
-	Version mahome.Version
-}
+type (
+	Item      = selection.Item
+	Selection = selection.Selection
+)
 
 type Model struct {
 	plugins  []Item

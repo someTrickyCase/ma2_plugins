@@ -6,7 +6,7 @@ vars:
   LUA_FILES: lib/**/*.lua plugins/**/*.lua test/**/*.lua
   LUA_TESTS: test/**/*.test.lua
   GO_FILES: cmd/**/*.go internal/**/*.go
-  PLUGINS: channel-to-fixture fixture-to-channel
+  PLUGINS: channel-to-fixture fixture-to-channel sequence-cleanup sequence-position-presets
   GOLDEN_COMMIT: abc1234
   GOLDEN_DATE: "2026-10-24"
 
@@ -16,7 +16,7 @@ tasks:
       - task --list
 
   check:
-    desc: Everything CI checks, in the same order
+    desc: Local code rules, Lua checks, Go lint and tests
     cmds:
       - task: rules
       - task: lua
@@ -116,12 +116,14 @@ tasks:
     desc: Build the distribution bundle with the installer and the plugins
     cmds:
       - task: setup:resources
-      - cmd: go build -ldflags="-H windowsgui" -o dist/bundle/install.exe ./cmd/setup
+      - go run ./cmd/ma2kit package-stage
+      - cmd: go build -ldflags="-H windowsgui" -o dist/bundle-stage/install.exe ./cmd/setup
         platforms: [windows]
-      - cmd: go build -o dist/bundle/install ./cmd/setup
+      - cmd: go build -o dist/bundle-stage/install ./cmd/setup
         platforms: [linux, darwin]
-      - go run -buildvcs=true ./cmd/ma2kit bundle --all --out dist/bundle
-      - go run -buildvcs=true ./cmd/ma2kit manifest --out dist/bundle
+      - go run -buildvcs=true ./cmd/ma2kit bundle --all --out dist/bundle-stage
+      - go run -buildvcs=true ./cmd/ma2kit manifest --out dist/bundle-stage
+      - go run ./cmd/ma2kit package-promote
       - ls -la dist/bundle
 
   setup:resources:

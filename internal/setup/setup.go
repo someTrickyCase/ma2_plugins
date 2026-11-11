@@ -11,16 +11,16 @@ import (
 	"github.com/someTrickyCase/ma2_plugins/internal/box"
 	"github.com/someTrickyCase/ma2_plugins/internal/mahome"
 	"github.com/someTrickyCase/ma2_plugins/internal/manifest"
-	"github.com/someTrickyCase/ma2_plugins/internal/tui"
+	"github.com/someTrickyCase/ma2_plugins/internal/selection"
 )
 
 var errNoVersion = errors.New("no MA2 version folder found")
 
 type Picker func(
 	output io.Writer,
-	items []tui.Item,
+	items []selection.Item,
 	versions []mahome.Version,
-) (tui.Selection, error)
+) (selection.Selection, error)
 
 func Run(
 	args []string,
@@ -94,26 +94,26 @@ func (one Setup) Install() int {
 		return fail(one.Err, err)
 	}
 
-	selection, err := one.Picker(one.Out, itemsOf(one.Box.Plugins), versions)
+	chosen, err := one.Picker(one.Out, itemsOf(one.Box.Plugins), versions)
 	if err != nil {
 		return fail(one.Err, err)
 	}
 
-	plugins := pickedOf(one.Box, selection.Items)
+	plugins := pickedOf(one.Box, chosen.Items)
 
-	err = tui.ValidateItems(selection.Items)
+	err = selection.ValidateItems(chosen.Items)
 	if err != nil {
 		return fail(one.Err, err)
 	}
 
-	return one.copySelected(selection.Version, plugins)
+	return one.copySelected(chosen.Version, plugins)
 }
 
 func (one Setup) copySelected(
 	version mahome.Version,
 	plugins []manifest.Manifest,
 ) int {
-	err := tui.ValidateItems(itemsOf(plugins))
+	err := selection.ValidateItems(itemsOf(plugins))
 	if err != nil {
 		return fail(one.Err, err)
 	}
@@ -139,11 +139,11 @@ func (one Setup) copySelected(
 	return 0
 }
 
-func itemsOf(plugins []manifest.Manifest) []tui.Item {
-	items := make([]tui.Item, 0, len(plugins))
+func itemsOf(plugins []manifest.Manifest) []selection.Item {
+	items := make([]selection.Item, 0, len(plugins))
 
 	for _, plugin := range plugins {
-		items = append(items, tui.Item{
+		items = append(items, selection.Item{
 			Key:     plugin.File,
 			Name:    plugin.Name,
 			Version: plugin.Version,
@@ -154,7 +154,7 @@ func itemsOf(plugins []manifest.Manifest) []tui.Item {
 	return items
 }
 
-func pickedOf(one box.Box, items []tui.Item) []manifest.Manifest {
+func pickedOf(one box.Box, items []selection.Item) []manifest.Manifest {
 	picked := []manifest.Manifest{}
 
 	for _, item := range items {

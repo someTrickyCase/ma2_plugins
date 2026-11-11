@@ -2,11 +2,45 @@ package bundle_test
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/someTrickyCase/ma2_plugins/internal/bundle"
 	"github.com/someTrickyCase/ma2_plugins/internal/manifest"
 )
+
+const aModulePath = "lib/ma/a.lua"
+
+func TestCollectRejectsMissingProjectModule(t *testing.T) {
+	t.Parallel()
+
+	read := files(map[string]string{
+		manifestPath: answerManifest,
+		mainPath:     `require("ma.missing")`,
+	})
+
+	_, err := bundle.Collect(answerName, read, fixedStamp())
+	if err == nil || !strings.Contains(err.Error(), "ma.missing") ||
+		!strings.Contains(err.Error(), mainPath) {
+		t.Fatalf("Collect() error = %v, want module and importer", err)
+	}
+}
+
+func TestCollectNamesTransitiveMissingModule(t *testing.T) {
+	t.Parallel()
+
+	read := files(map[string]string{
+		manifestPath: answerManifest,
+		mainPath:     `require("ma.a")`,
+		aModulePath:  `require("core.missing")`,
+	})
+
+	_, err := bundle.Collect(answerName, read, fixedStamp())
+	if err == nil || !strings.Contains(err.Error(), "core.missing") ||
+		!strings.Contains(err.Error(), aModulePath) {
+		t.Fatalf("Collect() error = %v, want missing dependency chain", err)
+	}
+}
 
 const (
 	answerName    = "answer"
@@ -87,8 +121,8 @@ func TestCollectFollowsTheRequiresDepthFirst(t *testing.T) {
 
 	read := files(map[string]string{
 		manifestPath:     answerManifest,
-		mainPath:         `require("ma.a") require("core.b")`,
-		"lib/ma/a.lua":   `require("core.b") require("core.c")`,
+		mainPath:         "require(\"ma.a\")\nrequire(\"core.b\")",
+		aModulePath:      "require(\"core.b\")\nrequire(\"core.c\")",
 		"lib/core/b.lua": emptyModule,
 		"lib/core/c.lua": emptyModule,
 	})
@@ -99,7 +133,7 @@ func TestCollectFollowsTheRequiresDepthFirst(t *testing.T) {
 	}
 
 	want := []bundle.Module{
-		{Name: "ma.a", Text: `require("core.b") require("core.c")`},
+		{Name: "ma.a", Text: "require(\"core.b\")\nrequire(\"core.c\")"},
 		{Name: "core.b", Text: emptyModule},
 		{Name: "core.c", Text: emptyModule},
 	}
@@ -124,6 +158,24 @@ func TestCollectLeavesTheModulesOfMaAlone(t *testing.T) {
 
 	if len(got.Modules) != 0 {
 		t.Errorf("Modules = %+v, want none", got.Modules)
+	}
+}
+
+func TestCollectIgnoresRequireTextInsideAString(t *testing.T) {
+	t.Parallel()
+
+	read := files(map[string]string{
+		manifestPath: answerManifest,
+		mainPath:     `local text = 'require("ma.missing")'`,
+	})
+
+	got, err := bundle.Collect(answerName, read, fixedStamp())
+	if err != nil {
+		t.Fatalf(collectError, err)
+	}
+
+	if len(got.Modules) != 0 {
+		t.Fatalf("literal text loaded modules: %v", got.Modules)
 	}
 }
 

@@ -18,6 +18,8 @@ const (
 	outFlag       = "--out"
 	dirMode       = 0o750
 	fileMode      = 0o600
+	manifestFile  = "plugin.json"
+	createdError  = "output folder was created: %v"
 )
 
 const answerJSON = `{
@@ -46,6 +48,75 @@ func TestBundleAllDiscoversPlugins(t *testing.T) {
 	}
 }
 
+func TestBundleRejectsTraversalBeforeWriting(t *testing.T) {
+	root := t.TempDir()
+	writePlugin(t, root)
+	t.Chdir(root)
+
+	manifestPath := filepath.Join(pluginDir, answerPlugin, manifestFile)
+	bad := strings.Replace(answerJSON, "k-answer", "../escaped", 1)
+
+	err := os.WriteFile(manifestPath, []byte(bad), fileMode)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got := run(bundleCmd, answerPlugin, outFlag, outFolder)
+	if got.code == 0 {
+		t.Fatal("traversal manifest was bundled")
+	}
+
+	_, err = os.Stat(outFolder)
+	if !os.IsNotExist(err) {
+		t.Fatalf(createdError, err)
+	}
+}
+
+func TestBundleRejectsNegativeSlotBeforeWriting(t *testing.T) {
+	root := t.TempDir()
+	writePlugin(t, root)
+	t.Chdir(root)
+
+	got := run(bundleCmd, answerPlugin, "--at", "-1", outFlag, outFolder)
+	if got.code == 0 {
+		t.Fatal("negative slot was accepted")
+	}
+
+	_, err := os.Stat(outFolder)
+	if !os.IsNotExist(err) {
+		t.Fatalf(createdError, err)
+	}
+}
+
+func TestBundleAllRejectsDuplicateFileBasesBeforeWriting(t *testing.T) {
+	root := t.TempDir()
+	writePlugin(t, root)
+	second := filepath.Join(root, pluginDir, "second")
+
+	err := os.MkdirAll(second, dirMode)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = os.WriteFile(filepath.Join(second, manifestFile),
+		[]byte(answerJSON), fileMode)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Chdir(root)
+
+	got := run(bundleCmd, "--all", outFlag, outFolder)
+	if got.code == 0 {
+		t.Fatal("duplicate file base was accepted")
+	}
+
+	_, err = os.Stat(outFolder)
+	if !os.IsNotExist(err) {
+		t.Fatalf(createdError, err)
+	}
+}
+
 func writePlugin(t *testing.T, root string) {
 	t.Helper()
 
@@ -57,7 +128,7 @@ func writePlugin(t *testing.T, root string) {
 	}
 
 	err = os.WriteFile(
-		filepath.Join(folder, "plugin.json"), []byte(answerJSON), fileMode)
+		filepath.Join(folder, manifestFile), []byte(answerJSON), fileMode)
 	if err != nil {
 		t.Fatalf("cannot write the manifest: %v", err)
 	}

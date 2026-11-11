@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"github.com/someTrickyCase/ma2_plugins/internal/buildinfo"
+	"github.com/someTrickyCase/ma2_plugins/internal/packageout"
 )
 
 const (
@@ -20,7 +21,9 @@ commands:
   bundle <plugin-name> [flags]
   manifest [flags]
   install <plugin-name> [flags]
-  tui`
+  tui
+  package-stage
+  package-promote`
 )
 
 func Run(args []string, stdout, stderr io.Writer) int {
@@ -29,10 +32,6 @@ func Run(args []string, stdout, stderr io.Writer) int {
 	}
 
 	switch args[0] {
-	case "version":
-		_, _ = fmt.Fprintln(stdout, "ma2kit", buildinfo.Current())
-
-		return ExitOK
 	case "check-rules":
 		return runCheckRules(args[1:], stdout, stderr)
 	case "new":
@@ -46,8 +45,38 @@ func Run(args []string, stdout, stderr io.Writer) int {
 	case "tui":
 		return runTUI(args[1:], stdout, stderr)
 	default:
+		return runOther(args, stdout, stderr)
+	}
+}
+
+func runOther(args []string, stdout, stderr io.Writer) int {
+	switch args[0] {
+	case "version":
+		_, _ = fmt.Fprintln(stdout, "ma2kit", buildinfo.Current())
+
+		return ExitOK
+	case "package-stage":
+		return packageCommand(args[1:], stderr, packageout.Prepare)
+	case "package-promote":
+		return packageCommand(args[1:], stderr, packageout.Promote)
+	default:
 		return showUsage(stderr, fmt.Sprintf("unknown command %q", args[0]))
 	}
+}
+
+func packageCommand(
+	args []string, stderr io.Writer, action func(string) error,
+) int {
+	if len(args) != 0 {
+		return showUsage(stderr, "package command takes no arguments")
+	}
+
+	err := action(".")
+	if err != nil {
+		return showUsage(stderr, err.Error())
+	}
+
+	return ExitOK
 }
 
 func showUsage(stderr io.Writer, problem string) int {

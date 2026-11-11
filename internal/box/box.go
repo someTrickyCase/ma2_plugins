@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/someTrickyCase/ma2_plugins/internal/bundle"
 	"github.com/someTrickyCase/ma2_plugins/internal/install"
@@ -126,11 +127,12 @@ func uniqueNames(plugins []manifest.Manifest) error {
 			return fmt.Errorf("invalid plugin: %w", err)
 		}
 
-		if seen[plugin.File] {
+		key := strings.ToLower(plugin.File)
+		if seen[key] {
 			return fmt.Errorf("%w %q", errDuplicate, plugin.File)
 		}
 
-		seen[plugin.File] = true
+		seen[key] = true
 	}
 
 	return nil
